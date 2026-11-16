@@ -8,6 +8,7 @@ import { chatCompletionsUrl, DEFAULT_SETTINGS, validateSettings } from './shared
 import { FEATURES, ACTIONS, INTERACTIONS, DEFAULT_PREFERENCES, validatePreferences, loadVoices, loadStickers } from './companion.js';
 import { UpdateManager, RELEASES_URL, prepareInstallJob } from './updates.js';
 import { prepareMedia } from './media.js';
+import { bottomRightPosition, keepWindowReachable, petWindowSize } from './geometry.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const characterPath = join(root, 'character', 'character.json');
@@ -33,12 +34,15 @@ let history = [];
 let petWindow;
 let chatWindow;
 let settingsWindow;
-let dragOrigin;
 let chatBusy = false;
 let chatController;
 let saving = Promise.resolve();
 let sleeping = false;
+let lastStickerId;
+let mediaSequence = 0;
+let dragDisplayId;
 let tray;
+let quitting = false;
 let gameMode = false;
 let petHidden = false;
 const shortcuts = { game: 'Ctrl+Alt+G', hide: 'Ctrl+Alt+H' };
@@ -50,10 +54,12 @@ function assertInteractive() {
   if (petHidden) throw new Error('桌宠已隐藏，请先按 Ctrl+Alt+H 或在面板中显示。');
 }
 function syncDesktopState() {
-  dragOrigin = null;
+  ++mediaSequence;
+  dragDisplayId = undefined;
   if (petWindow && !petWindow.isDestroyed()) {
     petWindow.setIgnoreMouseEvents(gameMode || petHidden, { forward: true });
     petWindow.setFocusable(!gameMode && !petHidden);
+    petWindow.setSkipTaskbar(true);
     if (petHidden) petWindow.hide();
     else petWindow.showInactive();
   }
@@ -66,6 +72,11 @@ function syncDesktopState() {
 }
 function setGameMode(value) { gameMode = Boolean(value); return syncDesktopState(); }
 function setPetHidden(value) { petHidden = Boolean(value); return syncDesktopState(); }
+function restorePet() {
+  if (!petWindow || petWindow.isDestroyed()) createPetWindow();
+  setPetHidden(false);
+}
+function randomVoices() { return voiceCatalog.clips.filter(clip => clip.random !== false); }
 
 // Keep the prototype separate from other Electron apps and focus the existing instance.
 const primaryInstance = app.requestSingleInstanceLock();
@@ -97,10 +108,12 @@ function resetPosition() {
   const area = screen.getPrimaryDisplay().workArea;
   if (!petWindow || petWindow.isDestroyed()) return;
   const [width, height] = petWindow.getSize();
-  petWindow.setPosition(Math.max(area.x, area.x + area.width - width - 30), Math.max(area.y, area.y + area.height - height - 20));
+  const position = bottomRightPosition(area, { width, height });
+  petWindow.setPosition(position.x, position.y);
 }
 
 function toggleSleep() {
+  ++mediaSequence;
   sleeping = !sleeping;
   petWindow?.webContents.send('pet:state', { sleeping });
   tray?.setContextMenu(makeMenu());
@@ -124,6 +137,7 @@ function playVoice(id) {
   const clip = voiceCatalog.clips.find(row => row.id === id);
   if (!clip) throw new Error('这条语音暂不可用，请刷新语音包。');
   if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
+  ++mediaSequence;
   petWindow?.webContents.send('pet:voice', clip);
   return { queued: true, label: clip.label };
 }
@@ -132,19 +146,21 @@ function makeMenu() {
   return Menu.buildFromTemplate([
     { label: currentName(), enabled: false },
     { type: 'separator' },
+    { label: '显示桌宠', click: restorePet },
     { label: '互动与语音', click: openSettings },
     { label: '动作', enabled: !gameMode && !petHidden, submenu: ACTIONS.map(action => ({ label: action.label, click: () => {
       try { performAction(action.id); } catch { petWindow?.webContents.send('pet:notice', '蓝小妹在休息，先叫醒她吧。'); }
     } })) },
-    { label: '播放一条语音', enabled: voiceCatalog.clips.length > 0 && !sleeping && !gameMode && !petHidden, click: () => {
-      const clip = voiceCatalog.clips[Math.floor(Math.random() * voiceCatalog.clips.length)];
+    { label: '播放一条语音', enabled: randomVoices().length > 0 && !sleeping && !gameMode && !petHidden, click: () => {
+      const clips = randomVoices();
+      const clip = clips[Math.floor(Math.random() * clips.length)];
       if (clip) playVoice(clip.id);
     } },
     { label: FEATURES.ai ? 'AI 聊天' : 'AI 聊天（功能暂未开放）', click: openChat },
     { label: sleeping ? '叫醒她' : '休息一下', enabled: !gameMode && !petHidden, click: toggleSleep },
     { label: '游戏模式（Ctrl+Alt+G）', type: 'checkbox', checked: gameMode, click: () => setGameMode(!gameMode) },
     { label: '隐藏桌宠（Ctrl+Alt+H）', type: 'checkbox', checked: petHidden, click: () => setPetHidden(!petHidden) },
-    { label: '回到主屏幕', click: resetPosition },
+    { label: '回到主屏幕', click: () => { restorePet(); resetPosition(); } },
     { label: '检查更新…', click: () => { openSettings(); settingsWindow?.webContents.once('did-finish-load', () => settingsWindow?.webContents.send('updates:focus')); settingsWindow?.webContents.send('updates:focus'); } },
     { type: 'separator' },
     { label: '退出桌宠', click: () => app.quit() },
@@ -164,6 +180,8 @@ function secureWindowOptions(width, height, extra = {}) {
     height,
     show: false,
     autoHideMenuBar: true,
+    skipTaskbar: true,
+    icon: join(root, character?.avatar || 'assets/icon.png'),
     webPreferences: {
       preload: join(root, 'src', 'preload.cjs'),
       contextIsolation: true,
@@ -177,11 +195,10 @@ function secureWindowOptions(width, height, extra = {}) {
 function createPetWindow() {
   const area = screen.getPrimaryDisplay().workArea;
   const size = displaySize();
-  const width = size.width + 26;
-  const height = size.height + 56;
+  const windowSize = petWindowSize(size);
+  const { width, height } = windowSize;
   petWindow = new BrowserWindow(secureWindowOptions(width, height, {
-    x: Math.max(area.x, area.x + area.width - width - 30),
-    y: Math.max(area.y, area.y + area.height - height - 20),
+    ...bottomRightPosition(area, { width, height }),
     frame: false,
     transparent: true,
     resizable: false,
@@ -195,6 +212,11 @@ function createPetWindow() {
   guardWindow(petWindow);
   petWindow.loadFile(join(root, 'src', 'pet.html'));
   petWindow.once('ready-to-show', syncDesktopState);
+  petWindow.on('close', event => {
+    if (quitting) return;
+    event.preventDefault();
+    setPetHidden(true);
+  });
   petWindow.on('closed', () => { petWindow = null; });
 }
 
@@ -229,6 +251,8 @@ function openSettings() {
 ipcMain.handle('pet:info', () => ({
   name: currentName(), description: character.description || '',
   image: character.image || 'assets/mascot.svg', greetings: character.greetings,
+  expressions: character.expressions || {},
+  expressionLabels: character.expressionLabels || {}, idleExpressions: character.idleExpressions || ['normal'],
   avatar: character.avatar || character.image || 'assets/mascot.svg',
   displaySize: displaySize(),
   features: FEATURES,
@@ -291,12 +315,14 @@ ipcMain.handle('updates:install', async () => {
 function savePreferences(input) {
   preferencesSaving = preferencesSaving.catch(() => {}).then(async () => {
     const updated = validatePreferences(input);
+    if (!['auto', 'normal'].includes(updated.portraitMode) && !Object.hasOwn(character.expressions || {}, updated.portraitMode)) throw new Error('没有这个常驻表情。');
     await writeJson(preferencesPath, updated);
     preferences = updated;
     const size = displaySize();
     if (petWindow && !petWindow.isDestroyed()) {
       const bounds = petWindow.getBounds();
-      petWindow.setBounds({ x: bounds.x, y: bounds.y + bounds.height - size.height - 56, width: size.width + 26, height: size.height + 56 });
+      const windowSize = petWindowSize(size);
+      petWindow.setBounds({ x: bounds.x, y: bounds.y + bounds.height - windowSize.height, ...windowSize });
       petWindow.webContents.send('pet:preferences', { preferences, displaySize: size });
     }
     return preferences;
@@ -308,20 +334,35 @@ function savePreferences(input) {
 async function executeInteraction(command) {
   if (!command || typeof command !== 'object' || !INTERACTIONS.some(row => row.id === command.type)) throw new Error('不支持的互动指令。');
   if (!['setPreferences', 'stopVoice', 'hideSticker'].includes(command.type)) assertInteractive();
+  const sequence = ['greet', 'playVoice', 'stopVoice', 'showSticker', 'randomSticker', 'hideSticker'].includes(command.type) ? ++mediaSequence : mediaSequence;
   if (ACTIONS.some(row => row.id === command.type)) return performAction(command.type);
   switch (command.type) {
+    case 'showExpression': {
+      if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
+      if (typeof command.id !== 'string' || !Object.hasOwn(character.expressions || {}, command.id)) throw new Error('没有这个角色表情。');
+      petWindow?.webContents.send('pet:expression', command.id);
+      return { performed: true };
+    }
     case 'playVoice':
       voiceCatalog = await readVoiceCatalog();
+      if (sequence !== mediaSequence) return { performed: false, superseded: true };
       return playVoice(command.id);
     case 'stopVoice':
       petWindow?.webContents.send('pet:voice-stop');
       return { performed: true };
-    case 'showSticker': {
+    case 'showSticker':
+    case 'randomSticker': {
       if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
       const { stickers } = await loadStickers(stickersDirectory);
+      if (sequence !== mediaSequence) return { performed: false, superseded: true };
       assertInteractive();
-      const sticker = stickers.find(row => row.id === command.id);
+      if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
+      const candidates = stickers.length > 1 ? stickers.filter(row => row.id !== lastStickerId) : stickers;
+      const sticker = command.type === 'randomSticker'
+        ? candidates[Math.floor(Math.random() * candidates.length)]
+        : stickers.find(row => row.id === command.id);
       if (!sticker) throw new Error('这张表情包不存在，请刷新表情包库。');
+      lastStickerId = sticker.id;
       petWindow?.webContents.send('pet:sticker', sticker);
       return { performed: true, label: sticker.label };
     }
@@ -332,7 +373,7 @@ async function executeInteraction(command) {
     case 'resetPosition': resetPosition(); return { performed: true };
     case 'moveTo': {
       if (!Number.isFinite(command.x) || !Number.isFinite(command.y)) throw new Error('桌宠坐标需要是有效数字。');
-      const area = screen.getDisplayNearestPoint({ x: Math.round(command.x), y: Math.round(command.y) }).workArea;
+      const area = screen.getDisplayMatching(petWindow.getBounds()).workArea;
       const [width, height] = petWindow.getSize();
       petWindow.setPosition(
         Math.round(Math.max(area.x, Math.min(command.x, area.x + area.width - width))),
@@ -344,7 +385,7 @@ async function executeInteraction(command) {
 }
 ipcMain.handle('interaction:execute', (_event, command) => executeInteraction(command));
 ipcMain.handle('interaction:catalog', async () => ({
-  commands: INTERACTIONS, preferences,
+  commands: INTERACTIONS, preferences, expressions: Object.keys(character.expressions || {}),
   voices: await readVoiceCatalog(),
   ...await loadStickers(stickersDirectory),
 }));
@@ -394,7 +435,6 @@ ipcMain.handle('companion:voice-folder', async () => {
 });
 ipcMain.on('companion:voice-stop', () => petWindow?.webContents.send('pet:voice-stop'));
 ipcMain.on('companion:voice-status', (event, value) => {
-  if (event.sender !== petWindow?.webContents || !['playing', 'ended', 'stopped', 'error'].includes(value?.state)) return;
   settingsWindow?.webContents.send('pet:voice-status', { state: value.state, label: String(value.label || '').slice(0, 60) });
 });
 ipcMain.handle('settings:read', () => ({
@@ -487,37 +527,36 @@ ipcMain.handle('chat:send', async (_event, rawText) => {
     chatController = null;
   }
 });
-ipcMain.on('pet:drag-start', () => {
-  if (gameMode || petHidden || !petWindow || petWindow.isDestroyed()) return;
-  dragOrigin = { ...screen.getCursorScreenPoint(), bounds: petWindow.getBounds() };
-});
-ipcMain.on('pet:drag-move', () => {
-  if (gameMode || petHidden || !dragOrigin || !petWindow || petWindow.isDestroyed()) return;
-  const point = screen.getCursorScreenPoint();
-  const area = screen.getDisplayNearestPoint(point).workArea;
+ipcMain.on('pet:drag-move', (event, movement) => {
+  if (event.sender !== petWindow?.webContents || gameMode || petHidden || !petWindow || petWindow.isDestroyed() ||
+      !Number.isFinite(movement?.x) || !Number.isFinite(movement?.y) || Math.abs(movement.x) > 200 || Math.abs(movement.y) > 200) return;
   const bounds = petWindow.getBounds();
-  petWindow.setPosition(
-    Math.round(Math.max(area.x - bounds.width + 90, Math.min(area.x + area.width - 90, dragOrigin.bounds.x + point.x - dragOrigin.x))),
-    Math.round(Math.max(area.y - bounds.height + 130, Math.min(area.y + area.height - 110, dragOrigin.bounds.y + point.y - dragOrigin.y))),
-  );
+  const target = { x: bounds.x + movement.x, y: bounds.y + movement.y };
+  const display = screen.getAllDisplays().find(item => item.id === dragDisplayId) || screen.getDisplayMatching(bounds);
+  const position = keepWindowReachable(target.x, target.y, bounds, display.workArea);
+  petWindow.setPosition(position.x, position.y);
 });
-ipcMain.on('pet:drag-end', () => { dragOrigin = null; });
-ipcMain.on('pet:open-chat', event => { if (event.sender !== petWindow?.webContents || (!gameMode && !petHidden)) openChat(); });
-ipcMain.on('pet:open-settings', event => { if (event.sender !== petWindow?.webContents || (!gameMode && !petHidden)) openSettings(); });
+ipcMain.on('pet:drag-start', event => {
+  dragDisplayId = screen.getDisplayMatching(petWindow.getBounds()).id;
+});
+ipcMain.on('pet:drag-end', event => { if (event.sender === petWindow?.webContents) dragDisplayId = undefined; });
+ipcMain.on('pet:open-chat', event => { if (event.sender === petWindow?.webContents && (!gameMode && !petHidden)) openChat(); });
+ipcMain.on('pet:open-settings', event => { if (event.sender === petWindow?.webContents && (!gameMode && !petHidden)) openSettings(); });
 ipcMain.on('pet:quit', () => app.quit());
 ipcMain.on('pet:context-menu', () => { if (!gameMode && !petHidden) makeMenu().popup({ window: petWindow }); });
 ipcMain.on('chat:cancel', () => chatController?.abort());
-ipcMain.on('pet:mouse-ignore', (_event, ignore) => {
-  if (petWindow && !petWindow.isDestroyed()) petWindow.setIgnoreMouseEvents(gameMode || petHidden || Boolean(ignore), { forward: true });
+ipcMain.on('pet:mouse-ignore', (event, ignore) => {
+  if (event.sender === petWindow?.webContents && petWindow && !petWindow.isDestroyed()) petWindow.setIgnoreMouseEvents(gameMode || petHidden || Boolean(ignore), { forward: true });
 });
 
 app.whenReady().then(async () => {
   if (!primaryInstance) return;
+  if (process.platform === 'win32') app.setAppUserModelId('K1TaYnni.LanxiaomeiDesktopPet');
   character = await readJson(characterPath, null);
   if (!character?.id || !character?.name || !Array.isArray(character?.greetings) || !character.greetings.length) {
     throw new Error('character/character.json 缺少必需字段。');
   }
-  for (const path of [character.image || 'assets/mascot.svg', character.avatar || 'assets/icon.png']) {
+  for (const path of [character.image || 'assets/mascot.svg', character.avatar || 'assets/icon.png', ...Object.values(character.expressions || {})]) {
     if (typeof path !== 'string') throw new Error('角色图片路径必须为字符串。');
     const asset = relative(root, resolve(root, path));
     if (isAbsolute(asset) || asset.startsWith('..')) throw new Error('角色图片必须在项目目录内。');
@@ -526,6 +565,7 @@ app.whenReady().then(async () => {
   ({ voicesDirectory, stickersDirectory } = await prepareMedia({ root, userData, packaged: app.isPackaged }));
   try { preferences = validatePreferences({ ...DEFAULT_PREFERENCES, ...await readJson(preferencesPath, {}) }); }
   catch { preferences = { ...DEFAULT_PREFERENCES }; }
+  if (!['auto', 'normal'].includes(preferences.portraitMode) && !Object.hasOwn(character.expressions || {}, preferences.portraitMode)) preferences.portraitMode = 'auto';
   voiceCatalog = await readVoiceCatalog();
   history = await readJson(memoryPath, []);
   if (!Array.isArray(history)) history = [];
@@ -534,7 +574,8 @@ app.whenReady().then(async () => {
   tray = new Tray(join(root, character.avatar || 'assets/icon.png'));
   tray.setToolTip(currentName());
   tray.setContextMenu(makeMenu());
-  tray.on('double-click', openSettings);
+  tray.on('click', restorePet);
+  tray.on('double-click', () => { restorePet(); openSettings(); });
   for (const [key, callback] of [['game', () => setGameMode(!gameMode)], ['hide', () => setPetHidden(!petHidden)]]) {
     let registered = false;
     try { registered = globalShortcut.register(shortcuts[key], callback); } catch { /* Show conflicts in the panel. */ }
@@ -548,11 +589,13 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  // This is a tray app. Closing auxiliary windows must not terminate the pet.
+  if (!tray && process.platform !== 'darwin') app.quit();
 });
-app.on('before-quit', () => { globalShortcut.unregisterAll(); chatController?.abort(); updates.cancel(); });
+app.on('before-quit', () => { quitting = true; globalShortcut.unregisterAll(); chatController?.abort(); updates.cancel(); });
+app.on('will-quit', () => { tray?.destroy(); tray = null; });
 
 async function readVoiceCatalog() {
-  try { return await loadVoices(voicesDirectory); }
+  try { return await loadVoices(voicesDirectory, { loudnessDirectory: join(root, 'assets', 'voices') }); }
   catch (error) { return { clips: [], warnings: [error.message] }; }
 }

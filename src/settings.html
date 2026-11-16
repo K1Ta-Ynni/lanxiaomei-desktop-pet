@@ -22,6 +22,8 @@
 <h1>来互动一下</h1>
 <p>点击角色打招呼，按住可以拖动位置。</p>
 <div id="actions" class="action-grid"></div>
+<p>角色表情</p>
+<div id="expressions" class="action-grid"></div>
 <div id="action-result" class="result" role="status"></div>
 </section>
 <section class="card">
@@ -35,6 +37,7 @@
 <h2>表情包</h2>
 <p id="sticker-count">正在读取…</p>
 <div id="sticker-list" class="sticker-list"></div>
+<button id="random-sticker" class="secondary-button" type="button">随机发一个表情包</button>
 <div class="button-row wrap"><button id="import-stickers" class="primary-button" type="button">添加表情包</button><button id="sticker-folder" class="secondary-button" type="button">打开表情包目录</button><button id="refresh-stickers" class="secondary-button" type="button">刷新</button><button id="hide-sticker" class="secondary-button" type="button">收起桌面表情</button></div>
 <div id="sticker-result" class="result" role="status" aria-live="polite"></div>
 </section>
@@ -43,8 +46,10 @@
 <div class="field"><label for="scale">大小 <output id="scale-value">100%</output></label><input id="scale" type="range" min="0.6" max="1.6" step="0.05" /></div>
 <div class="field"><label for="volume">音量 <output id="volume-value">65%</output></label><input id="volume" type="range" min="0" max="1" step="0.05" /></div>
 <label class="check"><input id="muted" type="checkbox" /> 静音</label>
-<label class="check"><input id="clickVoice" type="checkbox" /> 点按时随机播放一条语音（间隔至少 3 秒）</label>
-<label class="check"><input id="idleActions" type="checkbox" /> 偶尔自己晃一晃（不自动发声）</label>
+<label class="check"><input id="clickVoice" type="checkbox" /> 点按时随机播放语音，再点立即打断并换下一条</label>
+<label class="check"><input id="clickSticker" type="checkbox" /> 点按时也可冒表情包（与语音二选一，两项都开启时约 1/4 概率）</label>
+<label class="check"><input id="idleActions" type="checkbox" /> 偶尔自己摇一摇或蹦一下（不自动发声）</label>
+<div class="field"><label for="portraitMode">常驻表情</label><select id="portraitMode"><option value="auto">待机随机轮换</option><option value="normal">原始表情</option></select><small>随机轮换每隔约 30～60 秒切换一次微笑、害羞或困倦。互动结束后回到常驻表情。</small></div>
 <button class="primary-button" type="submit">保存互动设置</button>
 <div id="result" class="result" role="status" aria-live="polite"></div>
 </form>

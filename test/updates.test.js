@@ -74,6 +74,30 @@ test('portable media migration fills missing files without replacing user edits'
   } finally { await rm(data, { recursive: true, force: true }); }
 });
 
+test('bundled voice pack adds missing clips and nested files while retaining user labels and recordings', async () => {
+  const data = await mkdtemp(join(tmpdir(), 'lanxiaomei-voice-merge-'));
+  try {
+    const root = join(data, 'app'), userData = join(data, 'profile');
+    const bundled = join(root, 'assets', 'voices'), personal = join(userData, 'media', 'voices');
+    await mkdir(join(bundled, 'pack'), { recursive: true });
+    await mkdir(join(personal, 'pack'), { recursive: true });
+    await writeFile(join(bundled, 'manifest.json'), JSON.stringify({ clips: [{ id: 'old', file: 'pack/old.wav', label: 'bundled' }, { id: 'new', file: 'pack/new.wav' }] }));
+    const original = JSON.stringify({ clips: [{ id: 'old', file: 'pack/old.wav', label: 'user label' }, { id: 'personal', file: 'mine.wav' }] });
+    await writeFile(join(personal, 'manifest.json'), original);
+    await writeFile(join(bundled, 'pack', 'old.wav'), 'bundled old');
+    await writeFile(join(bundled, 'pack', 'new.wav'), 'bundled new');
+    await writeFile(join(personal, 'pack', 'old.wav'), 'user edited audio');
+    await prepareMedia({ root, userData, packaged: true });
+    await prepareMedia({ root, userData, packaged: true });
+    const catalog = JSON.parse(await readFile(join(personal, 'manifest.json'), 'utf8'));
+    assert.deepEqual(catalog.clips.map(clip => clip.id), ['old', 'personal', 'new']);
+    assert.equal(catalog.clips[0].label, 'user label');
+    assert.equal(await readFile(join(personal, 'pack', 'old.wav'), 'utf8'), 'user edited audio');
+    assert.equal(await readFile(join(personal, 'pack', 'new.wav'), 'utf8'), 'bundled new');
+    assert.equal(await readFile(join(personal, 'manifest.before-bundled-import.json'), 'utf8'), original);
+  } finally { await rm(data, { recursive: true, force: true }); }
+});
+
 test('download cancellation removes the partial file and allows retry', async () => {
   const data = await mkdtemp(join(tmpdir(), 'lanxiaomei-update-cancel-'));
   try {

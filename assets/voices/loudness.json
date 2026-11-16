@@ -1,0 +1,316 @@
+{
+  "targetLufs": -18.0,
+  "peakCeilingDb": -1.5,
+  "clips": [
+    {
+      "id": "lanjie_7d6a9f4a308e",
+      "file": "lanjie/niceeeee！.mp3",
+      "sha256": "11bfc88392f98bf38a7d5983c790003c1555a7ca8f40bde79b0a6a985f354efe",
+      "integratedLufs": -12.99,
+      "truePeakDb": -5.79,
+      "gainDb": -5.01,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_03f37a735b3f",
+      "file": "lanjie/不要啊(1).mp3",
+      "sha256": "bda257b53e5806e147338b91e4bf79a56281eb92d2f01bd93c696359f5c2356e",
+      "integratedLufs": -13.8,
+      "truePeakDb": -3.46,
+      "gainDb": -4.2,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_983ee1df97a0",
+      "file": "lanjie/你们不懂(1).mp3",
+      "sha256": "e8d6c3c7cb88efd3506ebebc2b57a36a07040b1ef02dba5aa6d8860b689a3556",
+      "integratedLufs": -32.83,
+      "truePeakDb": -25.82,
+      "gainDb": 14.83,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_0dec76c13ec2",
+      "file": "lanjie/你干嘛(1).mp3",
+      "sha256": "b2e94be9c201a9bbd6b020a64cc3d598f3f30201b36e9b8858a4c7918819b364",
+      "integratedLufs": -39.08,
+      "truePeakDb": -32.45,
+      "gainDb": 21.08,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_88c21a5eb911",
+      "file": "lanjie/吸气 (2).mp3",
+      "sha256": "af24a8c47a8e3807437aa387187a15ce45ff45c101adc6b926bc23a3b90008a9",
+      "integratedLufs": -40.86,
+      "truePeakDb": -27.19,
+      "gainDb": 22.86,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_f9b7dee719e1",
+      "file": "lanjie/和好(1).mp3",
+      "sha256": "e46f3ae422765d6d91669558db46452d011128a9c697176611d46e35a868adaa",
+      "integratedLufs": -15.13,
+      "truePeakDb": -1.74,
+      "gainDb": -2.87,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_fecb8e51bbc2",
+      "file": "lanjie/哈欠(1).mp3",
+      "sha256": "30a83d913b92d46ecaf8da9efe150f204c723a4a056f5fade4c8e35fc0ea09e2",
+      "integratedLufs": -30.98,
+      "truePeakDb": -25.77,
+      "gainDb": 12.98,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_6a12c6a80f4c",
+      "file": "lanjie/哎呀！干嘛呀！(1).mp3",
+      "sha256": "dd7352ad6f41204a1a72a99f98c02073735ee80c32228e08618148f12dfa92f2",
+      "integratedLufs": -15.76,
+      "truePeakDb": -8.95,
+      "gainDb": -2.24,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_bc94bdf77a08",
+      "file": "lanjie/唐哭/唐哭.mp3",
+      "sha256": "93f02a4c7dee5017b14ba4c315ec6dbf1ddf614945c854deeb18f3c58fb993d3",
+      "integratedLufs": -20.83,
+      "truePeakDb": -12.85,
+      "gainDb": 2.83,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_1457e2d88f04",
+      "file": "lanjie/唐笑/唐笑1.mp3",
+      "sha256": "0fbd24eb8204119e47645b7c316ff021c619c369ae49c8f91f4c9bb2b1ba7268",
+      "integratedLufs": -24.95,
+      "truePeakDb": -15.63,
+      "gainDb": 6.95,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_4dffcc7a13f0",
+      "file": "lanjie/唐笑/唐笑2.mp3",
+      "sha256": "0e9853ee2b2c8311c299c6fa3980ac0ced8540935d9e0cfd49638594bb7b1e75",
+      "integratedLufs": -20.16,
+      "truePeakDb": -11.2,
+      "gainDb": 2.16,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_1cd537341657",
+      "file": "lanjie/唐笑/神秘笑声.mp3",
+      "sha256": "070e03a870002cd3a1d174ccae9b04bbf2e4c707a5eacbaa9522762b6beb3716",
+      "integratedLufs": -20.33,
+      "truePeakDb": -6.69,
+      "gainDb": 2.33,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_10133e115612",
+      "file": "lanjie/唐笑/老钱风笑.mp3",
+      "sha256": "1771169f14e29f0be6a1a7d88f508801393e8a3fe69135be3dc35e453b36a79c",
+      "integratedLufs": -25.33,
+      "truePeakDb": -14.77,
+      "gainDb": 7.33,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_01b3a263b391",
+      "file": "lanjie/唱歌/blg带带我.mp3",
+      "sha256": "ab97301c1d50712656475f0642fd96fa463cf1d347d0a2ed540f56dd6b95b398",
+      "integratedLufs": -16.59,
+      "truePeakDb": -3.36,
+      "gainDb": -1.41,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_01d15eb1d7c0",
+      "file": "lanjie/唱歌/o kg o.mp3",
+      "sha256": "0287ed930274471558bd74bda73d0b884ad7fb9693eb4baa77dd42c38de703f5",
+      "integratedLufs": -36.0,
+      "truePeakDb": -21.99,
+      "gainDb": 18.0,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_01bcd8d640c2",
+      "file": "lanjie/唱歌/念蓝师.mp3",
+      "sha256": "d87943c79bba5b4da9fe3e9e663b9ea0f311fca69afba9603ce06b2651604a98",
+      "integratedLufs": -28.67,
+      "truePeakDb": -20.22,
+      "gainDb": 10.67,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_f740185c614b",
+      "file": "lanjie/唱歌/捏一把.mp3",
+      "sha256": "160998c90330b6fb095a4f03f23b3c59a7b8b1d62127bac545c4519425dee6f4",
+      "integratedLufs": -16.21,
+      "truePeakDb": -3.97,
+      "gainDb": -1.79,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_fb871b42de9c",
+      "file": "lanjie/唱歌/砌墙墙.mp3",
+      "sha256": "73fb5cb143edc43a414dd629f58fc07118eeec3bb131c897896381746624d357",
+      "integratedLufs": -29.05,
+      "truePeakDb": -19.52,
+      "gainDb": 11.05,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_1f0ea84d8319",
+      "file": "lanjie/唱歌/陀螺.mp3",
+      "sha256": "3a5bdd8a9d06601e5d348607c3ff968d1314e90c7ce7ececdfa5ef2228c40500",
+      "integratedLufs": -46.45,
+      "truePeakDb": -33.23,
+      "gainDb": 28.45,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_7951db9eae62",
+      "file": "lanjie/唱歌/雨爱？！.mp3",
+      "sha256": "0417249ac0fe3e4fb33ac1341d678c3ca366496ee4657595b710adb39d244fce",
+      "integratedLufs": -27.38,
+      "truePeakDb": -15.37,
+      "gainDb": 9.38,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_1a9e86a127f4",
+      "file": "lanjie/奇怪声音.mp3",
+      "sha256": "b228ba936eda80d5dca6e3ffd9c7f96e44635ab023ca95e48168f80fb90ce456",
+      "integratedLufs": -13.19,
+      "truePeakDb": -7.79,
+      "gainDb": -4.81,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_01abf366592f",
+      "file": "lanjie/妈妈(1).mp3",
+      "sha256": "64845dfa9b8d070e92ff1ba41ee6ad8c6bb7b8c4f17a1138037da95c890d77ae",
+      "integratedLufs": -11.09,
+      "truePeakDb": -1.83,
+      "gainDb": -6.91,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_14f77c3ba8b6",
+      "file": "lanjie/打嗝(1).mp3",
+      "sha256": "331a2476fbec4c27ed398db008536401770ba53cdb5559a2a540fc62edec18f9",
+      "integratedLufs": null,
+      "truePeakDb": -19.62,
+      "gainDb": 0,
+      "estimatedLufs": null,
+      "peakLimited": true
+    },
+    {
+      "id": "lanjie_ee0f80ba1630",
+      "file": "lanjie/曼波(1).mp3",
+      "sha256": "30beb048ade17ae363fd0dacafbe0355199420d47cfb5715e5756cd4312dcdca",
+      "integratedLufs": -30.4,
+      "truePeakDb": -20.81,
+      "gainDb": 12.4,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_823d5d1e5d67",
+      "file": "lanjie/桶鼠泥 (2).mp3",
+      "sha256": "a917bcb3707bf0cc2a840e153b529d45a2a71916f735c20f1b1310246071c91e",
+      "integratedLufs": -42.68,
+      "truePeakDb": -32.28,
+      "gainDb": 24.68,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_802ce22116af",
+      "file": "lanjie/气鼠我了.mp3",
+      "sha256": "71bf9b81b5d80e8472de24aa310c52921fc88868cd8cc07ec06544cbd38da156",
+      "integratedLufs": -14.32,
+      "truePeakDb": -5.54,
+      "gainDb": -3.68,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_8b08fef4eabb",
+      "file": "lanjie/洗马达 (2).mp3",
+      "sha256": "b21238fdb17549d5e9c963306992638e61593739afe8030f1e9143da90fc0621",
+      "integratedLufs": -35.59,
+      "truePeakDb": -27.38,
+      "gainDb": 17.59,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_3d297ae8bb3d",
+      "file": "lanjie/米米(1).mp3",
+      "sha256": "9caa94ab61eca4fe04b80b234f11923b9429791ea6dce6dc6d5643b2423c0991",
+      "integratedLufs": -15.43,
+      "truePeakDb": -2.46,
+      "gainDb": -2.57,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_a4e03629a463",
+      "file": "lanjie/老婆(1).mp3",
+      "sha256": "a1c0255a9b1f564097b269fd3d6a0753e40a9bf42313359ab89c507430e7637e",
+      "integratedLufs": -14.1,
+      "truePeakDb": -6.06,
+      "gainDb": -3.9,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_317fec6a1ba4",
+      "file": "lanjie/预制嗦面 (2).mp3",
+      "sha256": "6fc7bfd95e7f9bad71cb03cf67c4367c09d9a2f439693f165fd4e4d5c502fe2e",
+      "integratedLufs": -44.71,
+      "truePeakDb": -35.24,
+      "gainDb": 26.71,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_2b504e75a44c",
+      "file": "lanjie/领域展开(1).mp3",
+      "sha256": "4c2d81537c84ce214adcc66526cd339ab5f8f34f4d0b144b80ed1585d697c65f",
+      "integratedLufs": -30.93,
+      "truePeakDb": -22.95,
+      "gainDb": 12.93,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    }
+  ]
+}

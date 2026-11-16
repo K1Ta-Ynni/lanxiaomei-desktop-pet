@@ -1,3 +1,283 @@
 {
-  "clips": []
+  "clips": [
+    {
+      "id": "lanjie_7d6a9f4a308e",
+      "label": "niceeeee！",
+      "file": "lanjie/niceeeee！.mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 3.744,
+      "random": true
+    },
+    {
+      "id": "lanjie_03f37a735b3f",
+      "label": "不要啊",
+      "file": "lanjie/不要啊(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 2.256,
+      "random": true
+    },
+    {
+      "id": "lanjie_983ee1df97a0",
+      "label": "你们不懂",
+      "file": "lanjie/你们不懂(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 0.792,
+      "random": true
+    },
+    {
+      "id": "lanjie_0dec76c13ec2",
+      "label": "你干嘛",
+      "file": "lanjie/你干嘛(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 3.264,
+      "random": true
+    },
+    {
+      "id": "lanjie_88c21a5eb911",
+      "label": "吸气",
+      "file": "lanjie/吸气 (2).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 0.792,
+      "random": true
+    },
+    {
+      "id": "lanjie_f9b7dee719e1",
+      "label": "和好",
+      "file": "lanjie/和好(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 7.824,
+      "random": true
+    },
+    {
+      "id": "lanjie_fecb8e51bbc2",
+      "label": "哈欠",
+      "file": "lanjie/哈欠(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 0.792,
+      "random": true
+    },
+    {
+      "id": "lanjie_6a12c6a80f4c",
+      "label": "哎呀！干嘛呀！",
+      "file": "lanjie/哎呀！干嘛呀！(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 3.648,
+      "random": true
+    },
+    {
+      "id": "lanjie_bc94bdf77a08",
+      "label": "唐哭",
+      "file": "lanjie/唐哭/唐哭.mp3",
+      "group": "唐哭",
+      "text": "",
+      "duration": 9.552,
+      "random": true
+    },
+    {
+      "id": "lanjie_1457e2d88f04",
+      "label": "唐笑1",
+      "file": "lanjie/唐笑/唐笑1.mp3",
+      "group": "唐笑",
+      "text": "",
+      "duration": 2.568,
+      "random": true
+    },
+    {
+      "id": "lanjie_4dffcc7a13f0",
+      "label": "唐笑2",
+      "file": "lanjie/唐笑/唐笑2.mp3",
+      "group": "唐笑",
+      "text": "",
+      "duration": 4.176,
+      "random": true
+    },
+    {
+      "id": "lanjie_1cd537341657",
+      "label": "神秘笑声",
+      "file": "lanjie/唐笑/神秘笑声.mp3",
+      "group": "唐笑",
+      "text": "",
+      "duration": 5.472,
+      "random": true
+    },
+    {
+      "id": "lanjie_10133e115612",
+      "label": "老钱风笑",
+      "file": "lanjie/唐笑/老钱风笑.mp3",
+      "group": "唐笑",
+      "text": "",
+      "duration": 1.44,
+      "random": true
+    },
+    {
+      "id": "lanjie_01b3a263b391",
+      "label": "blg带带我",
+      "file": "lanjie/唱歌/blg带带我.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 123.816,
+      "random": false
+    },
+    {
+      "id": "lanjie_01d15eb1d7c0",
+      "label": "o kg o",
+      "file": "lanjie/唱歌/o kg o.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 186.12,
+      "random": false
+    },
+    {
+      "id": "lanjie_01bcd8d640c2",
+      "label": "念蓝师",
+      "file": "lanjie/唱歌/念蓝师.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 24.912,
+      "random": false
+    },
+    {
+      "id": "lanjie_f740185c614b",
+      "label": "捏一把",
+      "file": "lanjie/唱歌/捏一把.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 120.912,
+      "random": false
+    },
+    {
+      "id": "lanjie_fb871b42de9c",
+      "label": "砌墙墙",
+      "file": "lanjie/唱歌/砌墙墙.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 25.488,
+      "random": false
+    },
+    {
+      "id": "lanjie_1f0ea84d8319",
+      "label": "陀螺",
+      "file": "lanjie/唱歌/陀螺.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 110.808,
+      "random": false
+    },
+    {
+      "id": "lanjie_7951db9eae62",
+      "label": "雨爱？！",
+      "file": "lanjie/唱歌/雨爱？！.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 140.808,
+      "random": false
+    },
+    {
+      "id": "lanjie_1a9e86a127f4",
+      "label": "奇怪声音",
+      "file": "lanjie/奇怪声音.mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 1.728,
+      "random": true
+    },
+    {
+      "id": "lanjie_01abf366592f",
+      "label": "妈妈",
+      "file": "lanjie/妈妈(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 12.48,
+      "random": true
+    },
+    {
+      "id": "lanjie_14f77c3ba8b6",
+      "label": "打嗝",
+      "file": "lanjie/打嗝(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 0.384,
+      "random": true
+    },
+    {
+      "id": "lanjie_ee0f80ba1630",
+      "label": "曼波",
+      "file": "lanjie/曼波(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 1.848,
+      "random": true
+    },
+    {
+      "id": "lanjie_823d5d1e5d67",
+      "label": "桶鼠泥",
+      "file": "lanjie/桶鼠泥 (2).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 2.328,
+      "random": true
+    },
+    {
+      "id": "lanjie_802ce22116af",
+      "label": "气鼠我了",
+      "file": "lanjie/气鼠我了.mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 11.208,
+      "random": true
+    },
+    {
+      "id": "lanjie_8b08fef4eabb",
+      "label": "洗马达",
+      "file": "lanjie/洗马达 (2).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 3.336,
+      "random": true
+    },
+    {
+      "id": "lanjie_3d297ae8bb3d",
+      "label": "米米",
+      "file": "lanjie/米米(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 13.224,
+      "random": true
+    },
+    {
+      "id": "lanjie_a4e03629a463",
+      "label": "老婆",
+      "file": "lanjie/老婆(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 5.4,
+      "random": true
+    },
+    {
+      "id": "lanjie_317fec6a1ba4",
+      "label": "预制嗦面",
+      "file": "lanjie/预制嗦面 (2).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 2.208,
+      "random": true
+    },
+    {
+      "id": "lanjie_2b504e75a44c",
+      "label": "领域展开",
+      "file": "lanjie/领域展开(1).mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 0.984,
+      "random": true
+    }
+  ]
 }

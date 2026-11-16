@@ -10,6 +10,8 @@
 
 ## 发布者
 
+新版附带的语音清单会按 ID 补齐缺失条目，保留用户已存在的条目、标签和同名录音；首次合并前会把用户清单备份为 `media/voices/manifest.before-bundled-import.json`。已存在的子目录也会补齐其中缺失的文件，不覆盖用户文件。
+
 每个 Release 需要发布与版本号匹配的文件：
 
 ```text

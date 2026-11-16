@@ -23,7 +23,6 @@ petHidden.addEventListener('change', async () => {
   catch (error) { petHidden.checked = !petHidden.checked; show(desktopResult, error.message, true); }
 });
 window.petApp.onDesktopState(applyDesktopState);
-
 function labels() {
   document.querySelector('#scale-value').textContent = Math.round(Number(scale.value) * 100) + '%';
   document.querySelector('#volume-value').textContent = Math.round(Number(volume.value) * 100) + '%';
@@ -41,19 +40,32 @@ async function refreshVoices() {
     document.querySelector('#voice-count').textContent = clips.length ? '已载入 ' + clips.length + ' 条录音，点击即可播放。' : '还没有录音。打开语音目录，按 README 添加音频后再刷新。';
     const list = document.querySelector('#voice-list');
     list.replaceChildren();
+    const groups = new Map();
     for (const clip of clips) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'voice-button';
-      button.textContent = '▷ ' + clip.label;
-      button.dataset.voice = clip.id;
-      button.title = clip.text || clip.label;
-      button.addEventListener('click', async () => {
-        show(voiceResult, '正在打开录音…');
-        try { await window.petApp.playVoice(clip.id); }
-        catch (error) { show(voiceResult, error.message, true); }
-      });
-      list.append(button);
+      if (!groups.has(clip.group)) groups.set(clip.group, []);
+      groups.get(clip.group).push(clip);
+    }
+    for (const [group, groupClips] of groups) {
+      const heading = document.createElement('strong');
+      heading.className = 'voice-group-title';
+      heading.textContent = group;
+      const groupList = document.createElement('div');
+      groupList.className = 'voice-group';
+      list.append(heading, groupList);
+      for (const clip of groupClips) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'voice-button';
+        button.textContent = '▷ ' + clip.label;
+        button.dataset.voice = clip.id;
+        button.title = (clip.text || clip.label) + (clip.duration ? ` · ${Math.round(clip.duration)} 秒` : '') + (clip.random === false ? ' · 仅手动点播' : '');
+        button.addEventListener('click', async () => {
+          show(voiceResult, '正在打开录音…');
+          try { await window.petApp.playVoice(clip.id); }
+          catch (error) { show(voiceResult, error.message, true); }
+        });
+        groupList.append(button);
+      }
     }
     show(voiceResult, catalog.warnings.join(' '), catalog.warnings.length > 0);
   } catch (error) { show(voiceResult, error.message, true); }
@@ -76,8 +88,10 @@ async function refreshStickers() {
       image.src = sticker.src;
       image.alt = sticker.label;
       image.draggable = false;
+      image.loading = 'lazy';
+      button.title = sticker.label + (sticker.animated ? ' · GIF 动图' : '');
       const label = document.createElement('span');
-      label.textContent = sticker.label;
+      label.textContent = sticker.label + (sticker.animated ? ' · GIF' : '');
       button.append(image, label);
       button.addEventListener('click', async () => {
         try {
@@ -97,7 +111,7 @@ async function load() {
   document.querySelector('#art-credit').textContent = info.artCredit || '';
   scale.value = info.preferences.scale;
   volume.value = info.preferences.volume;
-  for (const key of ['muted', 'clickVoice', 'idleActions']) document.getElementById(key).checked = info.preferences[key];
+  for (const key of ['muted', 'clickVoice', 'clickSticker', 'idleActions']) document.getElementById(key).checked = info.preferences[key];
   labels();
   const actions = document.querySelector('#actions');
   for (const action of info.actions) {
@@ -114,6 +128,25 @@ async function load() {
     });
     actions.append(button);
   }
+  for (const id of Object.keys(info.expressions || {})) {
+    const label = info.expressionLabels?.[id] || id;
+    if (!info.expressions?.[id]) continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary-button';
+    button.dataset.expression = id;
+    button.textContent = label;
+    button.addEventListener('click', async () => {
+      try { await window.petApp.executeInteraction({ type: 'showExpression', id }); show(actionResult, label + ' ✓'); }
+      catch (error) { show(actionResult, error.message, true); }
+    });
+    document.querySelector('#expressions').append(button);
+    const option = document.createElement('option');
+    option.value = id;
+    option.textContent = label;
+    document.querySelector('#portraitMode').append(option);
+  }
+  document.querySelector('#portraitMode').value = info.preferences.portraitMode;
   await refreshVoices();
   await refreshStickers();
 }
@@ -122,12 +155,19 @@ volume.addEventListener('input', labels);
 document.querySelector('#preferences-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = { scale: Number(scale.value), volume: Number(volume.value) };
-  for (const key of ['muted', 'clickVoice', 'idleActions']) input[key] = document.getElementById(key).checked;
+  for (const key of ['muted', 'clickVoice', 'clickSticker', 'idleActions']) input[key] = document.getElementById(key).checked;
+  input.portraitMode = document.querySelector('#portraitMode').value;
   try { await window.petApp.savePreferences(input); show(result, '已保存并立即生效。'); }
   catch (error) { show(result, error.message, true); }
 });
 document.querySelector('#refresh-voices').addEventListener('click', () => { void refreshVoices(); });
 document.querySelector('#refresh-stickers').addEventListener('click', () => { void refreshStickers(); });
+document.querySelector('#random-sticker').addEventListener('click', async () => {
+  try {
+    const result = await window.petApp.executeInteraction({ type: 'randomSticker' });
+    show(stickerResult, `已发送「${result.label}」到桌面。`);
+  } catch (error) { show(stickerResult, error.message, true); }
+});
 document.querySelector('#import-stickers').addEventListener('click', async () => {
   try {
     const result = await window.petApp.importStickers();

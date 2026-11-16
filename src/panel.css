@@ -38,7 +38,7 @@ button, input, textarea { font: inherit; }
 .settings-form > p { margin: -8px 0 2px; color: #667a73; font-size: 13px; line-height: 1.6; }
 .field { display: grid; gap: 6px; }
 .field label { font-size: 13px; font-weight: 650; }
-.field input, .field textarea { width: 100%; padding: 10px 11px; border: 1px solid #dce6e1; border-radius: 7px; outline: none; color: #183a43; background: #fff; }
+.field input, .field textarea, .field select { width: 100%; padding: 10px 11px; border: 1px solid #dce6e1; border-radius: 7px; outline: none; color: #183a43; background: #fff; }
 .field input:focus, .field textarea:focus { border-color: #60b79d; box-shadow: 0 0 0 3px rgb(96 183 157 / 14%); }
 .field textarea { resize: vertical; }
 .field small { color: #71817c; font-size: 12px; line-height: 1.55; }
@@ -54,6 +54,8 @@ button, input, textarea { font: inherit; }
 .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; }
 .wrap { flex-wrap: wrap; }
 .voice-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.voice-group-title { grid-column: 1 / -1; margin-top: 5px; color: #456057; font-size: 13px; }
+.voice-group { display: grid; grid-column: 1 / -1; grid-template-columns: 1fr 1fr; gap: 8px; }
 .voice-list:empty { display: none; }
 .voice-button { padding: 10px; border: 1px solid #bad9cf; border-radius: 8px; color: #245f53; background: #f0f9f5; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .voice-button:hover { background: #dff2e8; }

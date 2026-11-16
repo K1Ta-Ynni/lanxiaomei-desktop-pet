@@ -4,11 +4,24 @@
   "description": "蓝世_1967的粉丝桌面小伙伴",
   "artCredit": "立绘原型来源：B站 UP 蓝世_1967",
   "image": "assets/portraits/portrait-desktop.png",
+  "expressions": {
+    "blink": "assets/portraits/portrait-blink.png",
+    "happy": "assets/portraits/portrait-happy.png",
+    "shy": "assets/portraits/portrait-shy.png",
+    "smile": "assets/portraits/portrait-smile.png",
+    "sleepy": "assets/portraits/portrait-sleepy.png",
+    "pout": "assets/portraits/portrait-pout.png",
+    "talk": "assets/portraits/portrait-talk.png",
+    "laugh": "assets/portraits/portrait-laugh.png",
+    "teary": "assets/portraits/portrait-teary.png",
+    "surprised": "assets/portraits/portrait-surprised.png",
+    "annoyed": "assets/portraits/portrait-annoyed.png"
+  },
+  "expressionLabels": { "blink": "闭眼", "happy": "闭眼笑", "shy": "害羞", "smile": "脸红微笑", "sleepy": "困倦", "pout": "嘟嘴", "talk": "张嘴", "laugh": "大笑", "teary": "委屈", "surprised": "惊讶", "annoyed": "无语" },
+  "idleExpressions": ["normal", "smile", "shy", "sleepy"],
   "avatar": "assets/portraits/avatar.png",
   "displaySize": { "width": 244, "height": 360 },
   "greetings": [
-    "蓝小妹来啦！",
-    "在这里陪你一会儿～",
-    "点到我啦。"
+    "蓝小妹来啦！"
   ]
 }
