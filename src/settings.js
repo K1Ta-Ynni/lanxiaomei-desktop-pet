@@ -6,6 +6,23 @@ const scale = document.querySelector('#scale');
 const volume = document.querySelector('#volume');
 let clips = [];
 let loadingVoices = false;
+const gameMode = document.querySelector('#game-mode');
+const petHidden = document.querySelector('#pet-hidden');
+const desktopResult = document.querySelector('#desktop-result');
+function applyDesktopState(state) {
+  gameMode.checked = state.gameMode;
+  petHidden.checked = state.petHidden;
+  show(desktopResult, [state.gameMode ? '游戏模式开启' : '游戏模式关闭', state.petHidden ? '桌宠已隐藏' : '桌宠已显示', ...state.shortcutErrors].join('；'), state.shortcutErrors.length > 0);
+}
+gameMode.addEventListener('change', async () => {
+  try { applyDesktopState(await window.petApp.setGameMode(gameMode.checked)); }
+  catch (error) { gameMode.checked = !gameMode.checked; show(desktopResult, error.message, true); }
+});
+petHidden.addEventListener('change', async () => {
+  try { applyDesktopState(await window.petApp.setPetHidden(petHidden.checked)); }
+  catch (error) { petHidden.checked = !petHidden.checked; show(desktopResult, error.message, true); }
+});
+window.petApp.onDesktopState(applyDesktopState);
 
 function labels() {
   document.querySelector('#scale-value').textContent = Math.round(Number(scale.value) * 100) + '%';
@@ -74,6 +91,7 @@ async function refreshStickers() {
   } catch (error) { show(stickerResult, error.message, true); }
 }
 async function load() {
+  applyDesktopState(await window.petApp.desktopState());
   const info = await window.petApp.info();
   document.querySelector('.identity img').src = '../' + info.avatar;
   document.querySelector('#art-credit').textContent = info.artCredit || '';
@@ -129,9 +147,9 @@ document.querySelector('#voice-folder').addEventListener('click', async () => {
   try { await window.petApp.openVoiceFolder(); }
   catch (error) { show(voiceResult, error.message, true); }
 });
-document.querySelector('#stop-voice').addEventListener('click', () => {
-  window.petApp.stopVoice();
-  show(voiceResult, '已停止播放。');
+document.querySelector('#stop-voice').addEventListener('click', async () => {
+  try { await window.petApp.stopVoice(); show(voiceResult, '已停止播放。'); }
+  catch (error) { show(voiceResult, error.message, true); }
 });
 document.querySelector('#open-chat').addEventListener('click', () => window.petApp.openChat());
 window.petApp.onVoiceStatus(value => {

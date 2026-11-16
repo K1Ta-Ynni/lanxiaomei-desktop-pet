@@ -6,8 +6,30 @@ let info, preferences, audio, activeClip;
 let dragging = false, sleeping = false;
 let pointerId, downAt, greetingTimer, actionTimer;
 let lastVoiceAt = 0;
+let suspended = false;
+
+function applyDesktopState(state) {
+  suspended = state.gameMode || state.petHidden;
+  document.body.classList.toggle('game-mode', state.gameMode);
+  if (suspended) {
+    stopVoice();
+    clearTimeout(greetingTimer);
+    clearTimeout(actionTimer);
+    pet.classList.remove('action-greet', 'action-jump', 'action-sway');
+    if (pointerId !== undefined && pet.hasPointerCapture(pointerId)) pet.releasePointerCapture(pointerId);
+    pointerId = undefined;
+    downAt = undefined;
+    dragging = false;
+    bubble.hidden = true;
+    stickerDisplay.hidden = true;
+    window.petApp.dragEnd();
+  }
+  ignoring = suspended;
+  window.petApp.ignoreMouse(suspended);
+}
 
 function notice(text) {
+  if (suspended) return;
   stickerDisplay.hidden = true;
   greeting.textContent = text;
   bubble.hidden = false;
@@ -21,7 +43,7 @@ function applyPreferences(value) {
   if (audio) { audio.volume = preferences.volume; audio.muted = preferences.muted; }
 }
 function animate(id) {
-  if (sleeping) return;
+  if (sleeping || suspended) return;
   clearTimeout(actionTimer);
   pet.classList.remove('action-greet', 'action-jump', 'action-sway');
   void pet.offsetWidth;
@@ -40,6 +62,7 @@ function stopVoice(report = true) {
   activeClip = null;
 }
 async function playVoice(clip) {
+  if (suspended) return;
   stopVoice();
   activeClip = clip;
   const current = new Audio(clip.src);
@@ -68,7 +91,7 @@ async function playVoice(clip) {
   } catch { failed(); }
 }
 async function sayHello() {
-  if (!info) return;
+  if (!info || suspended) return;
   notice(sleeping ? '休息中，右键可以叫醒我。' : info.greetings[Math.floor(Math.random() * info.greetings.length)]);
   if (sleeping) return;
   animate('greet');
@@ -81,7 +104,7 @@ async function sayHello() {
   }
 }
 pet.addEventListener('pointerdown', event => {
-  if (event.button !== 0) return;
+  if (suspended || event.button !== 0) return;
   pointerId = event.pointerId;
   downAt = { x: event.screenX, y: event.screenY };
   dragging = false;
@@ -114,7 +137,7 @@ pet.addEventListener('keydown', event => {
 let ignoring = false;
 window.addEventListener('mousemove', event => {
   const target = document.elementFromPoint(event.clientX, event.clientY);
-  const next = !downAt && !target?.closest('button, .bubble');
+  const next = suspended || (!downAt && !target?.closest('button, .bubble'));
   if (next !== ignoring) {
     ignoring = next;
     window.petApp.ignoreMouse(next);
@@ -126,9 +149,11 @@ document.querySelector('#bubble-chat').addEventListener('click', () => window.pe
 document.querySelector('#open-settings').addEventListener('click', () => window.petApp.openSettings());
 document.querySelector('#quit').addEventListener('click', () => window.petApp.quit());
 window.petApp.onRename(name => { document.title = name; });
+window.petApp.onDesktopState(applyDesktopState);
 window.petApp.onPreferences(applyPreferences);
 window.petApp.onNotice(notice);
 window.petApp.onSticker(sticker => {
+  if (suspended) return;
   greeting.textContent = sticker.label;
   stickerDisplay.src = sticker.src;
   stickerDisplay.alt = sticker.label;
@@ -164,10 +189,11 @@ async function load() {
   sleeping = info.sleeping;
   pet.classList.toggle('sleeping', sleeping);
   document.querySelector('#sleep').hidden = !sleeping;
+  applyDesktopState(await window.petApp.desktopState());
   notice(info.greetings[0]);
   // Occasional silent motion; no automatic audio or model requests.
   setInterval(() => {
-    if (preferences.idleActions && !sleeping && !downAt && !audio && Math.random() < 0.5) animate('sway');
+    if (!suspended && preferences.idleActions && !sleeping && !downAt && !audio && Math.random() < 0.5) animate('sway');
   }, 45000);
 }
 void load().catch(error => notice(error.message));

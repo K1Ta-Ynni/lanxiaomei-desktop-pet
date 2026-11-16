@@ -15,7 +15,9 @@
     "test": "node --test",
     "test:desktop": "node scripts/smoke.mjs",
     "package:windows": "node scripts/package-windows.mjs",
-    "test:package": "node scripts/smoke-package.mjs"
+    "test:package": "node scripts/smoke-package.mjs",
+    "test:updates": "node --test test/updates.test.js",
+    "test:updater": "node scripts/smoke-updater.mjs"
   },
   "devDependencies": {
     "electron": "39.8.10",

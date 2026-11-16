@@ -31,8 +31,21 @@ try {
   await pet.evaluate(() => window.petApp.openSettings());
   const settings = await opened;
   await settings.locator('#import-stickers').waitFor();
+  await settings.locator('#check-updates').waitFor();
+  await settings.locator('#game-mode').check();
+  await pet.waitForFunction(() => document.body.classList.contains('game-mode'));
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true);
+  await settings.locator('#pet-hidden').check();
+  assert.equal((await pet.evaluate(() => window.petApp.desktopState())).gameMode, true);
+  await settings.locator('#pet-hidden').uncheck();
+  await settings.locator('#game-mode').uncheck();
   console.log('Packaged Windows app passed: independent executable starts, portrait loads, actions and interaction panel work.');
 } finally {
   await desktop?.close().catch(() => {});
-  await rm(data, { recursive: true, force: true });
+  let lastError;
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try { await rm(data, { recursive: true, force: true, maxRetries: 2, retryDelay: 250 }); lastError = undefined; break; }
+    catch (error) { lastError = error; await new Promise(resolve => setTimeout(resolve, 250)); }
+  }
+  if (lastError) throw lastError;
 }

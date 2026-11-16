@@ -1,10 +1,13 @@
-import { app, BrowserWindow, ipcMain, screen, safeStorage, Menu, Tray, shell, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, safeStorage, Menu, Tray, shell, dialog, net, globalShortcut } from 'electron';
 import { readFile, writeFile, mkdir, rename, copyFile, stat } from 'node:fs/promises';
-import { join, resolve, relative, isAbsolute, basename, extname } from 'node:path';
+import { join, resolve, relative, isAbsolute, basename, extname, dirname } from 'node:path';
+import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { chatCompletionsUrl, DEFAULT_SETTINGS, validateSettings } from './shared.js';
 import { FEATURES, ACTIONS, INTERACTIONS, DEFAULT_PREFERENCES, validatePreferences, loadVoices, loadStickers } from './companion.js';
+import { UpdateManager, RELEASES_URL, prepareInstallJob } from './updates.js';
+import { prepareMedia } from './media.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const characterPath = join(root, 'character', 'character.json');
@@ -14,8 +17,13 @@ const userData = app.getPath('userData');
 const settingsPath = join(userData, 'settings.json');
 const memoryPath = join(userData, 'conversation.json');
 const preferencesPath = join(userData, 'preferences.json');
-const voicesDirectory = join(root, 'assets', 'voices');
-const stickersDirectory = join(root, 'assets', 'stickers');
+let voicesDirectory = join(root, 'assets', 'voices');
+let stickersDirectory = join(root, 'assets', 'stickers');
+const updatesDirectory = join(userData, 'updates');
+const updates = new UpdateManager({ version: app.getVersion(), directory: updatesDirectory,
+  fetcher: (url, options) => net.fetch(url, options),
+  onChange: state => settingsWindow?.webContents.send('updates:state', { ...state, canInstall: app.isPackaged && process.platform === 'win32' && process.arch === 'x64' }),
+});
 let preferences = { ...DEFAULT_PREFERENCES };
 let voiceCatalog = { clips: [], warnings: [] };
 let preferencesSaving = Promise.resolve();
@@ -31,14 +39,41 @@ let chatController;
 let saving = Promise.resolve();
 let sleeping = false;
 let tray;
+let gameMode = false;
+let petHidden = false;
+const shortcuts = { game: 'Ctrl+Alt+G', hide: 'Ctrl+Alt+H' };
+const shortcutErrors = [];
+
+function desktopState() { return { gameMode, petHidden, shortcuts, shortcutErrors }; }
+function assertInteractive() {
+  if (gameMode) throw new Error('游戏模式已开启，请先按 Ctrl+Alt+G 或在面板中关闭。');
+  if (petHidden) throw new Error('桌宠已隐藏，请先按 Ctrl+Alt+H 或在面板中显示。');
+}
+function syncDesktopState() {
+  dragOrigin = null;
+  if (petWindow && !petWindow.isDestroyed()) {
+    petWindow.setIgnoreMouseEvents(gameMode || petHidden, { forward: true });
+    petWindow.setFocusable(!gameMode && !petHidden);
+    if (petHidden) petWindow.hide();
+    else petWindow.showInactive();
+  }
+  for (const window of [petWindow, settingsWindow]) {
+    if (window && !window.isDestroyed()) window.webContents.send('desktop:state', desktopState());
+  }
+  tray?.setContextMenu(makeMenu());
+  tray?.setToolTip(`${currentName()}${gameMode ? ' · 游戏模式' : ''}${petHidden ? ' · 已隐藏' : ''}`);
+  return desktopState();
+}
+function setGameMode(value) { gameMode = Boolean(value); return syncDesktopState(); }
+function setPetHidden(value) { petHidden = Boolean(value); return syncDesktopState(); }
 
 // Keep the prototype separate from other Electron apps and focus the existing instance.
 const primaryInstance = app.requestSingleInstanceLock();
 if (!primaryInstance) app.quit();
-app.on('second-instance', () => { if (character) { petWindow?.show(); openSettings(); } });
+app.on('second-instance', () => { if (character) openSettings(); });
 
 async function readJson(path, fallback) {
-  try { return JSON.parse(await readFile(path, 'utf8')); }
+  try { return JSON.parse((await readFile(path, 'utf8')).replace(/^\uFEFF/u, '')); }
   catch (error) { if (error.code === 'ENOENT') return fallback; throw error; }
 }
 
@@ -72,6 +107,7 @@ function toggleSleep() {
 }
 
 function performAction(id) {
+  assertInteractive();
   if (!ACTIONS.some(action => action.id === id)) throw new Error('没有这个动作。');
   if (id === 'sleep' || id === 'wake') {
     const shouldSleep = id === 'sleep';
@@ -84,6 +120,7 @@ function performAction(id) {
 }
 
 function playVoice(id) {
+  assertInteractive();
   const clip = voiceCatalog.clips.find(row => row.id === id);
   if (!clip) throw new Error('这条语音暂不可用，请刷新语音包。');
   if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
@@ -96,16 +133,19 @@ function makeMenu() {
     { label: currentName(), enabled: false },
     { type: 'separator' },
     { label: '互动与语音', click: openSettings },
-    { label: '动作', submenu: ACTIONS.map(action => ({ label: action.label, click: () => {
+    { label: '动作', enabled: !gameMode && !petHidden, submenu: ACTIONS.map(action => ({ label: action.label, click: () => {
       try { performAction(action.id); } catch { petWindow?.webContents.send('pet:notice', '蓝小妹在休息，先叫醒她吧。'); }
     } })) },
-    { label: '播放一条语音', enabled: voiceCatalog.clips.length > 0 && !sleeping, click: () => {
+    { label: '播放一条语音', enabled: voiceCatalog.clips.length > 0 && !sleeping && !gameMode && !petHidden, click: () => {
       const clip = voiceCatalog.clips[Math.floor(Math.random() * voiceCatalog.clips.length)];
       if (clip) playVoice(clip.id);
     } },
     { label: FEATURES.ai ? 'AI 聊天' : 'AI 聊天（功能暂未开放）', click: openChat },
-    { label: sleeping ? '叫醒她' : '休息一下', click: toggleSleep },
-    { label: '回到主屏幕', click: () => { petWindow?.show(); resetPosition(); } },
+    { label: sleeping ? '叫醒她' : '休息一下', enabled: !gameMode && !petHidden, click: toggleSleep },
+    { label: '游戏模式（Ctrl+Alt+G）', type: 'checkbox', checked: gameMode, click: () => setGameMode(!gameMode) },
+    { label: '隐藏桌宠（Ctrl+Alt+H）', type: 'checkbox', checked: petHidden, click: () => setPetHidden(!petHidden) },
+    { label: '回到主屏幕', click: resetPosition },
+    { label: '检查更新…', click: () => { openSettings(); settingsWindow?.webContents.once('did-finish-load', () => settingsWindow?.webContents.send('updates:focus')); settingsWindow?.webContents.send('updates:focus'); } },
     { type: 'separator' },
     { label: '退出桌宠', click: () => app.quit() },
   ]);
@@ -154,7 +194,7 @@ function createPetWindow() {
   petWindow.setAlwaysOnTop(true, 'floating');
   guardWindow(petWindow);
   petWindow.loadFile(join(root, 'src', 'pet.html'));
-  petWindow.once('ready-to-show', () => petWindow?.show());
+  petWindow.once('ready-to-show', syncDesktopState);
   petWindow.on('closed', () => { petWindow = null; });
 }
 
@@ -198,6 +238,56 @@ ipcMain.handle('pet:info', () => ({
   actions: ACTIONS,
 }));
 ipcMain.handle('companion:preferences', () => preferences);
+ipcMain.handle('desktop:status', desktopState);
+ipcMain.handle('desktop:game-mode', (_event, value) => {
+  if (typeof value !== 'boolean') throw new Error('游戏模式需要布尔值。');
+  return setGameMode(value);
+});
+ipcMain.handle('desktop:hidden', (_event, value) => {
+  if (typeof value !== 'boolean') throw new Error('隐藏开关需要布尔值。');
+  return setPetHidden(value);
+});
+ipcMain.handle('updates:status', () => ({ ...updates.snapshot(), canInstall: app.isPackaged && process.platform === 'win32' && process.arch === 'x64' }));
+ipcMain.handle('updates:check', (_event, includePrereleases) => updates.check(includePrereleases !== false));
+ipcMain.handle('updates:download', () => updates.download());
+ipcMain.on('updates:cancel', () => updates.cancel());
+ipcMain.handle('updates:page', () => shell.openExternal(RELEASES_URL));
+ipcMain.handle('updates:show-file', () => {
+  if (!updates.downloaded) throw new Error('还没有下载完成的更新包。');
+  shell.showItemInFolder(updates.downloaded.path);
+});
+ipcMain.handle('updates:install', async () => {
+  if (!app.isPackaged || process.platform !== 'win32' || process.arch !== 'x64') throw new Error('源码运行时不自动替换文件，请通过 Git 更新；Windows 免安装版支持原位更新。');
+  if (['preparing', 'installing'].includes(updates.state.phase)) throw new Error('已在准备更新。');
+  const installDirectory = dirname(process.execPath);
+  updates.update({ phase: 'preparing', error: '' });
+  try {
+    const processStarted = execFileSync('powershell.exe', ['-NoProfile', '-Command', `(Get-Process -Id ${process.pid}).StartTime.ToUniversalTime().ToString('o')`], { encoding: 'utf8', windowsHide: true }).trim();
+    const job = await prepareInstallJob({ downloaded: updates.downloaded, installDirectory, executable: basename(process.execPath), pid: process.pid, processStarted,
+      directory: updatesDirectory, script: join(root, 'src', 'install-update.ps1') });
+    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', join(job, 'install.ps1'), '-JobFile', join(job, 'job.json')],
+      { cwd: job, detached: true, stdio: 'ignore', windowsHide: true });
+    let helperError;
+    child.on('error', error => { helperError = error; });
+    child.unref();
+    const deadline = Date.now() + 120000;
+    while (Date.now() < deadline) {
+      if (helperError) throw helperError;
+      const result = await readJson(join(job, 'result.json'), null);
+      if (result?.state === 'ready') {
+        updates.update({ phase: 'installing' });
+        setTimeout(() => app.quit(), 500);
+        return { restarting: true };
+      }
+      if (result && ['error', 'restore-required'].includes(result.state)) throw new Error(`更新准备失败：${result.message}`);
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    throw new Error('更新准备超时，当前桌宠继续运行。可稍后重试。');
+  } catch (error) {
+    updates.update({ phase: 'error', error: error.message });
+    throw error;
+  }
+});
 function savePreferences(input) {
   preferencesSaving = preferencesSaving.catch(() => {}).then(async () => {
     const updated = validatePreferences(input);
@@ -217,6 +307,7 @@ function savePreferences(input) {
 // All present and future callers share this dispatcher. No arbitrary paths or code.
 async function executeInteraction(command) {
   if (!command || typeof command !== 'object' || !INTERACTIONS.some(row => row.id === command.type)) throw new Error('不支持的互动指令。');
+  if (!['setPreferences', 'stopVoice', 'hideSticker'].includes(command.type)) assertInteractive();
   if (ACTIONS.some(row => row.id === command.type)) return performAction(command.type);
   switch (command.type) {
     case 'playVoice':
@@ -228,6 +319,7 @@ async function executeInteraction(command) {
     case 'showSticker': {
       if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
       const { stickers } = await loadStickers(stickersDirectory);
+      assertInteractive();
       const sticker = stickers.find(row => row.id === command.id);
       if (!sticker) throw new Error('这张表情包不存在，请刷新表情包库。');
       petWindow?.webContents.send('pet:sticker', sticker);
@@ -237,7 +329,7 @@ async function executeInteraction(command) {
       petWindow?.webContents.send('pet:sticker-hide');
       return { performed: true };
     case 'setPreferences': return savePreferences(command.preferences);
-    case 'resetPosition': petWindow?.show(); resetPosition(); return { performed: true };
+    case 'resetPosition': resetPosition(); return { performed: true };
     case 'moveTo': {
       if (!Number.isFinite(command.x) || !Number.isFinite(command.y)) throw new Error('桌宠坐标需要是有效数字。');
       const area = screen.getDisplayNearestPoint({ x: Math.round(command.x), y: Math.round(command.y) }).workArea;
@@ -396,11 +488,11 @@ ipcMain.handle('chat:send', async (_event, rawText) => {
   }
 });
 ipcMain.on('pet:drag-start', () => {
-  if (!petWindow || petWindow.isDestroyed()) return;
+  if (gameMode || petHidden || !petWindow || petWindow.isDestroyed()) return;
   dragOrigin = { ...screen.getCursorScreenPoint(), bounds: petWindow.getBounds() };
 });
 ipcMain.on('pet:drag-move', () => {
-  if (!dragOrigin || !petWindow || petWindow.isDestroyed()) return;
+  if (gameMode || petHidden || !dragOrigin || !petWindow || petWindow.isDestroyed()) return;
   const point = screen.getCursorScreenPoint();
   const area = screen.getDisplayNearestPoint(point).workArea;
   const bounds = petWindow.getBounds();
@@ -410,13 +502,13 @@ ipcMain.on('pet:drag-move', () => {
   );
 });
 ipcMain.on('pet:drag-end', () => { dragOrigin = null; });
-ipcMain.on('pet:open-chat', openChat);
-ipcMain.on('pet:open-settings', openSettings);
+ipcMain.on('pet:open-chat', event => { if (event.sender !== petWindow?.webContents || (!gameMode && !petHidden)) openChat(); });
+ipcMain.on('pet:open-settings', event => { if (event.sender !== petWindow?.webContents || (!gameMode && !petHidden)) openSettings(); });
 ipcMain.on('pet:quit', () => app.quit());
-ipcMain.on('pet:context-menu', () => makeMenu().popup({ window: petWindow }));
+ipcMain.on('pet:context-menu', () => { if (!gameMode && !petHidden) makeMenu().popup({ window: petWindow }); });
 ipcMain.on('chat:cancel', () => chatController?.abort());
 ipcMain.on('pet:mouse-ignore', (_event, ignore) => {
-  if (petWindow && !petWindow.isDestroyed()) petWindow.setIgnoreMouseEvents(Boolean(ignore), { forward: true });
+  if (petWindow && !petWindow.isDestroyed()) petWindow.setIgnoreMouseEvents(gameMode || petHidden || Boolean(ignore), { forward: true });
 });
 
 app.whenReady().then(async () => {
@@ -431,6 +523,7 @@ app.whenReady().then(async () => {
     if (isAbsolute(asset) || asset.startsWith('..')) throw new Error('角色图片必须在项目目录内。');
   }
   settings = { ...DEFAULT_SETTINGS, ...await readJson(settingsPath, {}) };
+  ({ voicesDirectory, stickersDirectory } = await prepareMedia({ root, userData, packaged: app.isPackaged }));
   try { preferences = validatePreferences({ ...DEFAULT_PREFERENCES, ...await readJson(preferencesPath, {}) }); }
   catch { preferences = { ...DEFAULT_PREFERENCES }; }
   voiceCatalog = await readVoiceCatalog();
@@ -442,6 +535,11 @@ app.whenReady().then(async () => {
   tray.setToolTip(currentName());
   tray.setContextMenu(makeMenu());
   tray.on('double-click', openSettings);
+  for (const [key, callback] of [['game', () => setGameMode(!gameMode)], ['hide', () => setPetHidden(!petHidden)]]) {
+    let registered = false;
+    try { registered = globalShortcut.register(shortcuts[key], callback); } catch { /* Show conflicts in the panel. */ }
+    if (!registered) shortcutErrors.push(`${shortcuts[key]} 注册失败，可能已被其他程序占用；仍可从托盘或面板切换。`);
+  }
   screen.on('display-removed', resetPosition);
   app.on('activate', () => { if (!petWindow) createPetWindow(); });
 }).catch((error) => {
@@ -452,7 +550,7 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-app.on('before-quit', () => chatController?.abort());
+app.on('before-quit', () => { globalShortcut.unregisterAll(); chatController?.abort(); updates.cancel(); });
 
 async function readVoiceCatalog() {
   try { return await loadVoices(voicesDirectory); }

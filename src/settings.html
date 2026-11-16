@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; style-src 'self'; script-src 'self'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="./panel.css" />
 <title>蓝小妹 · 互动与语音</title>
@@ -10,6 +10,14 @@
 <body class="settings-page">
 <header class="topbar"><div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong>蓝小妹 · 互动与语音</strong><span>本地陪伴，不需要连接模型</span></div></div></header>
 <main class="settings-form">
+<section class="card">
+<h2>游戏模式与显示</h2>
+<label class="check"><input id="game-mode" type="checkbox" /> 游戏模式 · Ctrl+Alt+G</label>
+<p>保留立绘，鼠标点击穿透；暂停拖动、点按、动作、语音和表情互动。再次按快捷键或通过托盘、此面板关闭。</p>
+<label class="check"><input id="pet-hidden" type="checkbox" /> 隐藏桌宠 · Ctrl+Alt+H</label>
+<p>独立隐藏或显示桌宠，不改变游戏模式。隐藏时停止当前语音并暂停桌面互动。两个开关均立即生效，重启后恢复普通显示。</p>
+<div id="desktop-result" class="result" role="status" aria-live="polite"></div>
+</section>
 <section class="card">
 <h1>来互动一下</h1>
 <p>点击角色打招呼，按住可以拖动位置。</p>
@@ -51,8 +59,20 @@
 </fieldset>
 <button id="open-chat" type="button" class="quiet-button">AI 聊天 · 功能暂未开放</button>
 </section>
+<section id="updates-section" class="card">
+<h2>版本与更新</h2>
+<p id="current-version">正在读取版本…</p>
+<label class="check"><input id="include-prereleases" type="checkbox" checked /> 包含预览版本</label>
+<div class="button-row wrap"><button id="check-updates" type="button" class="primary-button">检查更新</button><button id="release-page" type="button" class="secondary-button">打开发布页</button></div>
+<div id="update-result" class="result" role="status" aria-live="polite"></div>
+<pre id="update-notes" class="update-notes" hidden></pre>
+<progress id="update-progress" max="100" value="0" aria-label="更新下载进度" hidden></progress>
+<div class="button-row wrap"><button id="download-update" type="button" class="primary-button" hidden>下载新版</button><button id="cancel-update" type="button" class="secondary-button" hidden>取消下载</button><button id="install-update" type="button" class="primary-button" hidden>更新并重启</button><button id="show-update" type="button" class="secondary-button" hidden>查看下载文件</button></div>
+<p>Windows 免安装版可原位更新：校验更新包后退出、替换程序并重启，失败时尝试恢复旧版。语音包和表情包保存在独立的用户数据目录，升级时会迁移旧安装目录中的文件。检查更新仅在你点击时联网。</p>
+</section>
 <footer id="art-credit" class="credit"></footer>
 </main>
 <script type="module" src="./settings.js"></script>
+<script type="module" src="./update-ui.js"></script>
 </body>
 </html>

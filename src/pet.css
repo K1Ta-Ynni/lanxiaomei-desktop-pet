@@ -32,4 +32,7 @@ svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width:
 @keyframes greet { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-5deg) translateY(3px); } 65% { transform: rotate(3deg); } }
 @keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: scale(1.02, .97); } 45% { transform: translateY(-16px) rotate(-2deg); } 75% { transform: translateY(1px) scale(1.02, .98); } }
 @keyframes sway { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 70% { transform: rotate(6deg); } }
+.game-mode .pet img { animation: none; }
+.game-mode .pet-tools, .game-mode .bubble, .game-mode .sleep { display: none; }
+.game-mode .pet-stage { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

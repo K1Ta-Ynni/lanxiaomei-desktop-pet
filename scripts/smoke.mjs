@@ -57,6 +57,28 @@ try {
   assert.equal(await pet.evaluate(() => typeof window.process), 'undefined');
   const settings = await waitPage('settings', () => pet.evaluate(() => window.petApp.openSettings()));
   await settings.locator('[data-action=jump]').waitFor();
+  await settings.locator('#check-updates').waitFor();
+  await desktop.evaluate(({ net }) => {
+    net.fetch = async () => new Response(JSON.stringify([{ tag_name: 'v0.1.0', name: 'v0.1.0', body: 'Current preview', prerelease: true,
+      html_url: 'https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases/tag/v0.1.0', assets: [] }]), { headers: { 'Content-Type': 'application/json' } });
+  });
+  await settings.locator('#check-updates').click();
+  await settings.waitForFunction(() => document.querySelector('#update-result').textContent.includes('最新版本'));
+  assert.equal(await settings.locator('#install-update').isVisible(), false, 'source mode cannot self-replace');
+  await settings.locator('#include-prereleases').uncheck();
+  await settings.locator('#check-updates').click();
+  await settings.waitForFunction(() => document.querySelector('#update-result').textContent.includes('没有发布版本'));
+  await settings.locator('#include-prereleases').check();
+  await desktop.evaluate(({ net }) => { net.fetch = async () => new Response('', { status: 403 }); });
+  await settings.locator('#check-updates').click();
+  await settings.waitForFunction(() => document.querySelector('#update-result').textContent.includes('过于频繁'));
+  await desktop.evaluate(({ net }) => {
+    net.fetch = async () => new Response(JSON.stringify([{ tag_name: 'v0.2.0', name: 'v0.2.0', body: 'Next preview', prerelease: true,
+      html_url: 'https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases/tag/v0.2.0', assets: [] }]), { headers: { 'Content-Type': 'application/json' } });
+  });
+  await settings.locator('#check-updates').click();
+  await settings.waitForFunction(() => document.querySelector('#update-result').textContent.includes('发现 v0.2.0'));
+  assert.equal(await settings.locator('#download-update').isVisible(), false, 'incomplete release cannot download');
   assert.match(await settings.locator('#voice-count').textContent(), /还没有录音/u);
   await pet.screenshot({ path: join(artifacts, 'pet.png'), omitBackground: true });
   await settings.screenshot({ path: join(artifacts, 'settings.png'), fullPage: true });
@@ -156,19 +178,65 @@ try {
   await settings.locator('[data-voice=test]').click();
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('播放完成'), { timeout: 12000 });
 
+  // Modes are independent, apply to every interaction entry and never steal focus.
+  assert.equal(await desktop.evaluate(({ globalShortcut }) => globalShortcut.isRegistered('Ctrl+Alt+G')), true);
+  assert.equal(await desktop.evaluate(({ globalShortcut }) => globalShortcut.isRegistered('Ctrl+Alt+H')), true);
+  await desktop.evaluate(({ BrowserWindow }) => {
+    const window = BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html'));
+    const original = window.setIgnoreMouseEvents.bind(window);
+    window.setIgnoreMouseEvents = (ignore, options) => { globalThis.lastPetMouseIgnore = ignore; return original(ignore, options); };
+  });
+  await settings.locator('[data-voice=test]').click();
+  await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('正在播放'));
+  await settings.locator('#game-mode').check();
+  await pet.waitForFunction(() => document.body.classList.contains('game-mode'));
+  await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('已停止'));
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true);
+  assert.equal(await settings.locator('#pet-hidden').isChecked(), false);
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isFocusable()), false);
+  await pet.evaluate(() => window.petApp.ignoreMouse(false));
+  assert.equal(await desktop.evaluate(() => globalThis.lastPetMouseIgnore), true, 'renderer cannot undo game click-through');
+  for (const command of [{ type: 'greet' }, { type: 'jump' }, { type: 'sleep' }, { type: 'playVoice', id: 'test' }, { type: 'showSticker', id: '开心.png' }, { type: 'moveTo', x: 0, y: 0 }]) {
+    const message = await pet.evaluate(async command => {
+      try { await window.petApp.executeInteraction(command); return ''; } catch (error) { return error.message; }
+    }, command);
+    assert.match(message, /游戏模式/u);
+  }
+  assert.equal(await pet.locator('#bubble').isVisible(), false);
+  assert.equal(await pet.locator('.pet-tools').isVisible(), false);
+  assert.equal(await pet.locator('#pet img').evaluate(image => getComputedStyle(image).animationName), 'none');
+  const beforeDrag = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).getBounds());
+  await pet.evaluate(() => { window.petApp.dragStart(); window.petApp.dragMove(); window.petApp.dragEnd(); });
+  assert.deepEqual(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).getBounds()), beforeDrag);
+  await settings.locator('#pet-hidden').check();
+  assert.equal((await pet.evaluate(() => window.petApp.desktopState())).gameMode, true);
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), false);
+  await settings.locator('#game-mode').uncheck();
+  assert.equal((await pet.evaluate(() => window.petApp.desktopState())).petHidden, true);
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), false);
+  await settings.locator('#pet-hidden').uncheck();
+  await pet.evaluate(() => window.petApp.executeInteraction({ type: 'jump' }));
+  await pet.waitForFunction(() => document.querySelector('#pet').classList.contains('action-jump'));
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isFocusable()), true);
+
   await writeFile(join(voiceDir, 'manifest.json'), '{broken');
   await settings.locator('#refresh-voices').click();
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('清单无法读取'));
   assert.match(await pet.title(), /蓝小妹/u, 'bad voice manifest does not stop the app');
 
+  await settings.locator('#game-mode').check();
+  await settings.locator('#pet-hidden').check();
   await desktop.close();
   pet = await launch();
+  const modes = await pet.evaluate(() => window.petApp.desktopState());
+  assert.equal(modes.gameMode, false, 'game mode resets on restart');
+  assert.equal(modes.petHidden, false, 'hidden state resets on restart');
   const info = await pet.evaluate(() => window.petApp.info());
   assert.equal(info.preferences.scale, 0.8);
   assert.equal(info.preferences.muted, true);
   assert.equal(info.features.ai, false);
   assert.deepEqual(errors, [], 'renderers have no unhandled errors');
-  console.log('Desktop smoke passed: local interactions, sleep/wake, settings persistence, voice playback, sticker import/show/hide/timeout, duplicate imports, unified commands, AI disabled, renderer sandbox.');
+  console.log('Desktop smoke passed: interactions, independent game/hide modes, shortcuts, local media, update UI/version channels/rate limits, settings persistence, AI disabled and renderer sandbox.');
   console.log('Screenshots: ' + artifacts);
 } finally {
   await desktop?.close().catch(() => {});

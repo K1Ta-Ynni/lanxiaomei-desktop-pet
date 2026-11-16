@@ -71,6 +71,9 @@ button, input, textarea { font: inherit; }
 .model-fields { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; opacity: .65; }
 button:disabled { cursor: not-allowed; }
 .credit { text-align: center; color: #71817c; font-size: 12px; }
+.update-notes { max-height: 200px; margin: 0; padding: 10px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 7px; background: #f0f4f1; color: #456057; font: 12px/1.7 inherit; }
+#update-progress { width: 100%; accent-color: #287e6a; }
+[hidden] { display: none !important; }
 .welcome .badge { margin-bottom: 15px; }
 .welcome .primary-button { margin-top: 20px; }
 @media (max-width: 580px) { .topbar { padding: 12px 15px; } .messages { padding: 16px 12px; } .composer { width: calc(100% - 24px); } }

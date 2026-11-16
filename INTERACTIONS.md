@@ -32,3 +32,7 @@ await window.petApp.executeInteraction({
 休息时一般动作、语音和表情包会拒绝，先调用 wake。音频和图片 ID 必须出现在本地目录中，不接受任意路径。未知命令与无效设置会抛出错误，调用者需要处理。动作类调用表示指令已投递，不等同于动画或媒体已播放完成；语音有独立播放状态通知，图片解码失败会在桌面提示。
 
 这些是应用内接口。以后如果 AI 运行在外部进程，需要增加受控的本地适配层；无需改动现有动作、语音或表情包执行逻辑。
+
+版本更新属于应用管理功能，使用独立接口 `petApp.checkUpdates(includePrereleases)`、`petApp.downloadUpdate()`、`petApp.installUpdate()`，由用户在互动面板主动操作，未纳入角色互动命令列表。
+
+游戏模式和隐藏也是应用管理开关：`desktopState()` 读取状态，`setGameMode(boolean)` 和 `setPetHidden(boolean)` 切换，`onDesktopState(callback)` 订阅变化。两者独立，重启清零，不列入未来 AI 的互动命令。游戏模式或隐藏期间，动作、语音、表情展示和移动指令在主进程拒绝；保存设置、停止语音和收起表情仍可调用。游戏模式保持立绘可见并穿透鼠标，隐藏则隐藏桌宠窗口。
