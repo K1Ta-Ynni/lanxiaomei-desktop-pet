@@ -45,7 +45,12 @@ try {
     throw error;
   }
   if (applied.status !== 0 || result.state !== 'installed') {
-    throw new Error(`Update install helper failed (status=${applied.status}, state=${result.state}): ${result.message || applied.error?.message || applied.stderr || applied.stdout || 'no error detail'}`);
+    const detail = `Update install helper failed (status=${applied.status}, state=${result.state}): ${result.message || applied.error?.message || applied.stderr || applied.stdout || 'no error detail'}`;
+    if (process.env.GITHUB_ACTIONS) {
+      const escaped = detail.replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+      console.log(`::error title=Updater smoke failure::${escaped}`);
+    }
+    throw new Error(detail);
   }
   assert.equal(result.state, 'installed');
   assert.equal(await readFile(join(install, 'resources', 'app', 'package.json'), 'utf8').then(value => JSON.parse(value).version), '0.2.0');
