@@ -14,6 +14,12 @@ function Write-Result($state, $message) {
   $result = @{ state = $state; message = $message; version = $job.version; backup = $backupDirectory } | ConvertTo-Json
   [IO.File]::WriteAllText($resultFile, $result, (New-Object System.Text.UTF8Encoding($false)))
 }
+function Get-FileSha256($path) {
+  $stream = [IO.File]::OpenRead($path)
+  $sha256 = [Security.Cryptography.SHA256]::Create()
+  try { return [BitConverter]::ToString($sha256.ComputeHash($stream)).Replace('-', '').ToLowerInvariant() }
+  finally { $sha256.Dispose(); $stream.Dispose() }
+}
 try {
   if ($installDirectory -eq [IO.Path]::GetPathRoot($installDirectory) -or
       $jobDirectory.StartsWith($installDirectory + '\', [StringComparison]::OrdinalIgnoreCase) -or
@@ -30,7 +36,7 @@ try {
       -not (Test-Path -LiteralPath (Join-Path $installDirectory $job.executable) -PathType Leaf)) {
     throw 'The installed executable could not be found.'
   }
-  if ((Get-FileHash -LiteralPath $job.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $job.sha256) {
+  if ((Get-FileSha256 $job.zip) -ne $job.sha256) {
     throw 'The update ZIP failed its SHA-256 check.'
   }
   Add-Type -AssemblyName System.IO.Compression.FileSystem
