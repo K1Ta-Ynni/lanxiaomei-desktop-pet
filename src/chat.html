@@ -1,0 +1,24 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./panel.css" />
+<title>蓝小妹 | AI 聊天</title>
+</head>
+<body class="chat-page">
+<header class="topbar">
+<div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong id="name">蓝小妹</strong><span>AI 聊天 · 功能暂未开放</span></div></div>
+<button id="settings" class="quiet-button" type="button">互动与模型设置</button>
+</header>
+<main class="messages"><section class="welcome"><span class="badge">功能暂未开放</span><h1>先一起玩桌宠吧</h1><p>聊天入口先保留。现在可以点按互动、做小动作、休息，或者播放你放入的本地录音。</p><button id="interactions" class="primary-button" type="button">打开互动面板</button></section></main>
+<div id="status" class="status" role="status">AI 聊天功能暂未开放</div>
+<form id="composer" class="composer">
+<textarea id="input" rows="2" placeholder="功能暂未开放" aria-label="消息" disabled></textarea>
+<button id="send" type="submit" disabled>发送</button>
+<small>模型连接与角色设定将在后续版本开放</small>
+</form>
+<script type="module" src="./chat.js"></script>
+</body>
+</html>

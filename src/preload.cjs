@@ -1,0 +1,50 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+async function invoke(channel, value) {
+  try { return await ipcRenderer.invoke(channel, value); }
+  catch (error) { throw new Error(error.message.replace(/^Error invoking remote method '[^']+': (?:Error: )?/u, '')); }
+}
+
+contextBridge.exposeInMainWorld('petApp', {
+  info: () => invoke('pet:info'),
+  interactions: () => invoke('interaction:catalog'),
+  executeInteraction: (command) => invoke('interaction:execute', command),
+  stickers: () => invoke('companion:stickers'),
+  importStickers: () => invoke('companion:sticker-import'),
+  openStickerFolder: () => invoke('companion:sticker-folder'),
+  showSticker: (id) => invoke('interaction:execute', { type: 'showSticker', id }),
+  hideSticker: () => invoke('interaction:execute', { type: 'hideSticker' }),
+  preferences: () => invoke('companion:preferences'),
+  savePreferences: (value) => invoke('companion:save', value),
+  action: (id) => invoke('companion:action', id),
+  voices: () => invoke('companion:voices'),
+  playVoice: (id) => invoke('companion:voice', id),
+  openVoiceFolder: () => invoke('companion:voice-folder'),
+  stopVoice: () => invoke('interaction:execute', { type: 'stopVoice' }),
+  voiceStatus: (status) => ipcRenderer.send('companion:voice-status', status),
+  readSettings: () => invoke('settings:read'),
+  saveSettings: (value) => invoke('settings:save', value),
+  clearKey: () => invoke('settings:clear-key'),
+  history: () => invoke('chat:history'),
+  clearHistory: () => invoke('chat:clear'),
+  sendMessage: (text) => invoke('chat:send', text),
+  cancelMessage: () => ipcRenderer.send('chat:cancel'),
+  dragStart: (point) => ipcRenderer.send('pet:drag-start', point),
+  dragMove: (point) => ipcRenderer.send('pet:drag-move', point),
+  dragEnd: () => ipcRenderer.send('pet:drag-end'),
+  ignoreMouse: (ignore) => ipcRenderer.send('pet:mouse-ignore', ignore),
+  openChat: () => ipcRenderer.send('pet:open-chat'),
+  openSettings: () => ipcRenderer.send('pet:open-settings'),
+  quit: () => ipcRenderer.send('pet:quit'),
+  contextMenu: () => ipcRenderer.send('pet:context-menu'),
+  onRename: (callback) => ipcRenderer.on('pet:renamed', (_event, name) => callback(name)),
+  onState: (callback) => ipcRenderer.on('pet:state', (_event, state) => callback(state)),
+  onAction: (callback) => ipcRenderer.on('pet:action', (_event, id) => callback(id)),
+  onVoice: (callback) => ipcRenderer.on('pet:voice', (_event, clip) => callback(clip)),
+  onVoiceStop: (callback) => ipcRenderer.on('pet:voice-stop', () => callback()),
+  onVoiceStatus: (callback) => ipcRenderer.on('pet:voice-status', (_event, value) => callback(value)),
+  onPreferences: (callback) => ipcRenderer.on('pet:preferences', (_event, value) => callback(value)),
+  onNotice: (callback) => ipcRenderer.on('pet:notice', (_event, value) => callback(value)),
+  onSticker: (callback) => ipcRenderer.on('pet:sticker', (_event, value) => callback(value)),
+  onHideSticker: (callback) => ipcRenderer.on('pet:sticker-hide', () => callback()),
+});

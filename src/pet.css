@@ -1,0 +1,35 @@
+:root { color-scheme: light; font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+body { user-select: none; }
+.pet-stage { position: relative; width: 100vw; height: 100vh; }
+.pet { position: absolute; top: 40px; left: 12px; display: grid; place-items: center; width: calc(var(--pet-width, 244px) + 2px); height: calc(var(--pet-height, 274px) - 2px); margin: 0; padding: 0; border: 0; background: transparent; cursor: grab; -webkit-tap-highlight-color: transparent; }
+.pet:active { cursor: grabbing; }
+.pet img { display: block; width: var(--pet-width, 244px); height: var(--pet-height, 274px); object-fit: contain; filter: drop-shadow(0 9px 7px rgb(20 43 53 / 12%)); transform-origin: 50% 90%; animation: bob 3.8s ease-in-out infinite; pointer-events: none; }
+.pet:hover img { animation-duration: 1.8s; }
+.pet.sleeping img { animation: snooze 5s ease-in-out infinite; filter: saturate(.65) drop-shadow(0 9px 7px rgb(20 43 53 / 12%)); }
+.pet.action-greet:not(.sleeping) img { animation: greet 1s ease-in-out; }
+.pet.action-jump:not(.sleeping) img { animation: jump 1s ease-in-out; }
+.pet.action-sway:not(.sleeping) img { animation: sway 1s ease-in-out; }
+.sleep { position: absolute; right: 28px; top: 95px; color: #193b46; font: 700 18px Georgia, serif; letter-spacing: 3px; transform: rotate(-16deg); pointer-events: none; }
+.sleep[hidden] { display: none; }
+.pet-tools { position: absolute; right: 22px; bottom: 0; display: flex; gap: 8px; padding: 5px; opacity: .2; transition: opacity .18s ease; }
+.pet-stage:hover .pet-tools, .pet-tools:focus-within { opacity: 1; }
+.pet-tools button, .bubble button { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid rgb(25 59 70 / 14%); border-radius: 50%; color: #193b46; background: rgb(255 249 237 / 95%); box-shadow: 0 3px 10px rgb(20 43 53 / 12%); cursor: pointer; }
+.pet-tools button:hover, .bubble button:hover { background: #f1b756; transform: translateY(-1px); }
+svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bubble { position: absolute; z-index: 2; top: 4px; left: 18px; display: flex; align-items: center; gap: 8px; max-width: 232px; min-height: 42px; padding: 7px 8px 7px 13px; border: 1px solid rgb(25 59 70 / 10%); border-radius: 14px 14px 14px 4px; color: #193b46; background: #fff9ed; box-shadow: 0 5px 20px rgb(20 43 53 / 14%); font-size: 13px; line-height: 1.45; animation: bubble-in .16s ease-out; }
+.bubble[hidden] { display: none; }
+.bubble button { flex: 0 0 auto; width: 28px; height: 28px; box-shadow: none; }
+.bubble button svg { width: 15px; height: 15px; }
+.bubble .sticker-display { display: block; max-width: 180px; max-height: 180px; object-fit: contain; border-radius: 7px; }
+.bubble .sticker-display[hidden] { display: none; }
+.bubble:has(.sticker-display:not([hidden])) { display: grid; grid-template-columns: 1fr auto; max-width: calc(100vw - 36px); }
+.bubble .sticker-display:not([hidden]) { grid-column: 1 / -1; grid-row: 2; max-width: 100%; max-height: 160px; justify-self: center; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-5px) rotate(1deg); } }
+@keyframes snooze { 0%, 100% { transform: translateY(7px) rotate(10deg) scale(.96); } 50% { transform: translateY(7px) rotate(10deg) scale(.98); } }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(4px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes greet { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-5deg) translateY(3px); } 65% { transform: rotate(3deg); } }
+@keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: scale(1.02, .97); } 45% { transform: translateY(-16px) rotate(-2deg); } 75% { transform: translateY(1px) scale(1.02, .98); } }
+@keyframes sway { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 70% { transform: rotate(6deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

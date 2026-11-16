@@ -1,0 +1,58 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="./panel.css" />
+<title>蓝小妹 · 互动与语音</title>
+</head>
+<body class="settings-page">
+<header class="topbar"><div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong>蓝小妹 · 互动与语音</strong><span>本地陪伴，不需要连接模型</span></div></div></header>
+<main class="settings-form">
+<section class="card">
+<h1>来互动一下</h1>
+<p>点击角色打招呼，按住可以拖动位置。</p>
+<div id="actions" class="action-grid"></div>
+<div id="action-result" class="result" role="status"></div>
+</section>
+<section class="card">
+<h2>本地语音包</h2>
+<p id="voice-count">正在读取…</p>
+<div id="voice-list" class="voice-list"></div>
+<div class="button-row wrap"><button id="voice-folder" class="secondary-button" type="button">打开语音目录</button><button id="refresh-voices" class="secondary-button" type="button">刷新语音包</button><button id="stop-voice" class="secondary-button" type="button">停止播放</button></div>
+<div id="voice-result" class="result" role="status" aria-live="polite"></div>
+</section>
+<section class="card">
+<h2>表情包</h2>
+<p id="sticker-count">正在读取…</p>
+<div id="sticker-list" class="sticker-list"></div>
+<div class="button-row wrap"><button id="import-stickers" class="primary-button" type="button">添加表情包</button><button id="sticker-folder" class="secondary-button" type="button">打开表情包目录</button><button id="refresh-stickers" class="secondary-button" type="button">刷新</button><button id="hide-sticker" class="secondary-button" type="button">收起桌面表情</button></div>
+<div id="sticker-result" class="result" role="status" aria-live="polite"></div>
+</section>
+<form id="preferences-form" class="card">
+<h2>互动设置</h2>
+<div class="field"><label for="scale">大小 <output id="scale-value">100%</output></label><input id="scale" type="range" min="0.6" max="1.6" step="0.05" /></div>
+<div class="field"><label for="volume">音量 <output id="volume-value">65%</output></label><input id="volume" type="range" min="0" max="1" step="0.05" /></div>
+<label class="check"><input id="muted" type="checkbox" /> 静音</label>
+<label class="check"><input id="clickVoice" type="checkbox" /> 点按时随机播放一条语音（间隔至少 3 秒）</label>
+<label class="check"><input id="idleActions" type="checkbox" /> 偶尔自己晃一晃（不自动发声）</label>
+<button class="primary-button" type="submit">保存互动设置</button>
+<div id="result" class="result" role="status" aria-live="polite"></div>
+</form>
+<section id="model-section" class="card">
+<div class="section-title"><h2>模型接入</h2><span class="badge">功能暂未开放</span></div>
+<p>入口先保留，当前版本先玩桌宠互动。</p>
+<fieldset disabled class="model-fields">
+<div class="field"><label for="baseUrl">API 地址</label><input id="baseUrl" type="url" placeholder="后续开放" /></div>
+<div class="field"><label for="model">模型 ID</label><input id="model" placeholder="后续开放" /></div>
+<div class="field"><label for="apiKey">API 密钥</label><input id="apiKey" type="password" placeholder="后续开放" /></div>
+<button type="button" class="secondary-button">保存模型设置</button>
+</fieldset>
+<button id="open-chat" type="button" class="quiet-button">AI 聊天 · 功能暂未开放</button>
+</section>
+<footer id="art-credit" class="credit"></footer>
+</main>
+<script type="module" src="./settings.js"></script>
+</body>
+</html>

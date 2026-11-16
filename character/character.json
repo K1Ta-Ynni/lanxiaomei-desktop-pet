@@ -1,0 +1,14 @@
+{
+  "id": "lanxiaomei",
+  "name": "蓝小妹",
+  "description": "蓝世_1967的粉丝桌面小伙伴",
+  "artCredit": "立绘原型来源：B站 UP 蓝世_1967",
+  "image": "assets/portraits/portrait-desktop.png",
+  "avatar": "assets/portraits/avatar.png",
+  "displaySize": { "width": 244, "height": 360 },
+  "greetings": [
+    "蓝小妹来啦！",
+    "在这里陪你一会儿～",
+    "点到我啦。"
+  ]
+}

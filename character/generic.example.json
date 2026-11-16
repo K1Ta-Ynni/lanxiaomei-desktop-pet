@@ -1,0 +1,8 @@
+﻿{
+  "id": "example",
+  "name": "示例角色",
+  "description": "通用角色配置示例",
+  "image": "assets/mascot.svg",
+  "displaySize": { "width": 244, "height": 274 },
+  "greetings": ["你好呀。", "点到我啦。"]
+}

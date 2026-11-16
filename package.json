@@ -1,0 +1,24 @@
+{
+  "name": "lanxiaomei-desktop-pet",
+  "version": "0.1.0",
+  "description": "蓝小妹桌宠：面向蓝世_1967粉丝的开源桌面互动小伙伴。",
+  "productName": "蓝小妹桌宠",
+  "homepage": "https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet",
+  "repository": { "type": "git", "url": "https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet.git" },
+  "bugs": { "url": "https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/issues" },
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "test:desktop": "node scripts/smoke.mjs",
+    "package:windows": "node scripts/package-windows.mjs",
+    "test:package": "node scripts/smoke-package.mjs"
+  },
+  "devDependencies": {
+    "electron": "39.8.10",
+    "playwright": "^1.64.1"
+  }
+}
