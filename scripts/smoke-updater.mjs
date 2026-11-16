@@ -38,8 +38,15 @@ try {
     executable: 'LanXiaomei.exe', mediaDirectory: media, pid: 0, processStarted: '', restart: false }), 'utf8');
   const applied = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'src', 'install-update.ps1'), '-JobFile', join(update, 'job.json')],
     { windowsHide: true, encoding: 'utf8', timeout: 60000 });
-  if (applied.status !== 0) throw new Error(`Update install helper failed: ${applied.stderr || applied.stdout}`);
-  const result = JSON.parse(await readFile(join(update, 'result.json'), 'utf8'));
+  let result;
+  try { result = JSON.parse(await readFile(join(update, 'result.json'), 'utf8')); }
+  catch (error) {
+    if (applied.status !== 0) throw new Error(`Update install helper failed (status=${applied.status}, signal=${applied.signal || 'none'}): ${applied.error?.message || applied.stderr || applied.stdout || error.message}`);
+    throw error;
+  }
+  if (applied.status !== 0 || result.state !== 'installed') {
+    throw new Error(`Update install helper failed (status=${applied.status}, state=${result.state}): ${result.message || applied.error?.message || applied.stderr || applied.stdout || 'no error detail'}`);
+  }
   assert.equal(result.state, 'installed');
   assert.equal(await readFile(join(install, 'resources', 'app', 'package.json'), 'utf8').then(value => JSON.parse(value).version), '0.2.0');
   assert.equal(await readFile(join(media, 'voices', 'old.wav'), 'utf8'), 'old voice');
