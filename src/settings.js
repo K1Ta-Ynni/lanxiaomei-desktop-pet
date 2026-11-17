@@ -191,7 +191,7 @@ async function refreshVoices() {
     playlistState.voice = (await window.petApp.preferences()).voicePlaylist;
     playlistState.music = (await window.petApp.preferences()).musicPlaylist;
     const voices = clips.filter(clip => !isSong(clip));
-    document.querySelector('#voice-count').textContent = voices.length ? '已载入 ' + voices.length + ' 条语音，点击即可播放；歌曲在音乐播放器中管理。' : '还没有语音。打开语音目录，按 README 添加音频后再刷新。';
+    document.querySelector('#voice-count').textContent = voices.length ? '已载入 ' + voices.length + ' 条语音，点击即可播放；歌曲在音乐播放器中管理。' : '还没有语音。点击“添加语音”选择本地音频。';
     const list = document.querySelector('#voice-list');
     list.replaceChildren();
     const groups = new Map();
@@ -289,16 +289,45 @@ function renderSongLibrary(categories) {
   batch.music.update(songs, musicEditor);
 }
 document.querySelector('#music-refresh').addEventListener('click', () => { void refreshVoices(); });
-document.querySelector('#import-music').addEventListener('click', async event => {
-  const button = event.currentTarget;
-  button.disabled = true;
-  try {
-    const imported = await window.petApp.importMusic();
-    await refreshVoices();
-    show(document.querySelector('#music-result'), `已添加 ${imported.imported} 首歌曲。` + imported.warnings.join(' '), imported.warnings.length > 0);
-  } catch (error) { show(document.querySelector('#music-result'), error.message, true); }
-  finally { button.disabled = false; }
+function audioSummary(value) {
+  return `音量分析完成 ${value.analyzed || 0} 条。` + (value.reused ? `复用 ${value.reused} 条已有记录。` : '') + (value.warnings || []).join(' ');
+}
+let audioBusy = false;
+function audioButtons(busy) {
+  audioBusy = busy;
+  for (const id of ['import-voices', 'import-music', 'normalize-voices', 'normalize-music']) document.getElementById(id).disabled = busy;
+}
+for (const [kind, id] of [['voice', 'import-voices'], ['music', 'import-music']]) {
+  document.getElementById(id).addEventListener('click', async () => {
+    const target = kind === 'voice' ? voiceResult : document.querySelector('#music-result');
+    audioButtons(true);
+    try {
+      const value = await (kind === 'voice' ? window.petApp.importVoices() : window.petApp.importMusic());
+      await refreshVoices();
+      show(target, `已添加 ${value.imported} ${kind === 'voice' ? '条语音' : '首歌曲'}。` + audioSummary(value), value.warnings.length > 0);
+    } catch (error) { show(target, error.message, true); }
+    finally { audioButtons(false); }
+  });
+}
+for (const [kind, id] of [['voice', 'normalize-voices'], ['music', 'normalize-music']]) {
+  document.getElementById(id).addEventListener('click', async () => {
+    const target = kind === 'voice' ? voiceResult : document.querySelector('#music-result');
+    audioButtons(true);
+    show(target, '正在分析音量，不会播放音频，请稍候…');
+    try {
+      const value = await window.petApp.normalizeAudio(kind);
+      await refreshVoices();
+      show(target, audioSummary(value) + '下次播放生效。', value.warnings.length > 0);
+    } catch (error) { show(target, error.message, true); }
+    finally { audioButtons(false); }
+  });
+}
+window.petApp.onAudioProgress(value => {
+  if (value.done) return;
+  const target = value.kind === 'voice' ? voiceResult : document.querySelector('#music-result');
+  show(target, `正在分析音量 ${value.current}/${value.total}：${value.label}（不播放声音）`);
 });
+
 async function refreshStickers() {
   try {
     const catalog = await window.petApp.stickers();
@@ -382,7 +411,7 @@ async function load() {
     expressionList.append(entry);
   }
   renderPlaylist('expression');
-  for (const key of ['muted', 'clickVoice', 'clickSticker', 'idleActions', 'lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) document.getElementById(key).checked = info.preferences[key];
+  for (const key of ['muted', 'normalizeAudio', 'clickVoice', 'clickSticker', 'idleActions', 'lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) document.getElementById(key).checked = info.preferences[key];
   renderPerformanceControls();
   labels();
   const actions = document.querySelector('#actions');
@@ -423,7 +452,7 @@ volume.addEventListener('change', () => { void window.petApp.savePreferences({ v
 document.querySelector('#preferences-form').addEventListener('submit', async event => {
   event.preventDefault();
   const input = { scale: Number(scale.value), volume: Number(volume.value) };
-  for (const key of ['muted', 'clickVoice', 'clickSticker', 'idleActions', 'lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) input[key] = document.getElementById(key).checked;
+  for (const key of ['muted', 'normalizeAudio', 'clickVoice', 'clickSticker', 'idleActions', 'lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) input[key] = document.getElementById(key).checked;
   try { await window.petApp.savePreferences(input); scaleEditing = false; show(result, '已保存并立即生效。'); }
   catch (error) { show(result, error.message, true); }
 });

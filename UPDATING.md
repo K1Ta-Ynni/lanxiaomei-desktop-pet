@@ -10,6 +10,14 @@
 
 ## 发布者
 
+### 排查“更新准备超时”
+
+先查看 `%APPDATA%/lanxiaomei-desktop-pet/updates/` 下最新 `install-` 目录的 `result.json`。若目录只有 `job.json` 和 `install.ps1` 而没有结果，旧版可能未能启动安装脚本。v1.0、v2.0 和 v2.1 的启动器在部分 Windows 环境会因 Node 的 detached PowerShell 启动方式而直接退出，界面最终显示准备超时；代理只能影响下载，无法修复此阶段。
+
+修复后的启动器通过隐藏的独立 PowerShell 进程执行安装，并在任务目录保留 `helper-launch.json`、`helper-output.log`、`helper-error.log`。旧版本更新时执行的是旧版自己的脚本，因此仅发布新 ZIP 无法修复旧版的启动器；可退出旧版后手动解压新版到新目录运行，原用户数据目录保持不变。安装目录中自行添加、尚未导入用户目录的媒体应先保留。
+
+`npm.cmd run test:update-lifecycle` 使用本地旧版 portable ZIP 和最新构建执行完整更新重启测试；不访问真实 API、不使用日常数据目录。`test:upgrade-v2` 则单独验证旧版安装脚本与包格式兼容，两者覆盖的阶段不同。
+
 用户在界面中编辑的语音/表情名称与分类保存在用户目录的 `media-library.json`，不写回随包素材清单；源码运行与发行包使用同一规则。更新不会覆盖这些记录，素材按稳定 ID 关联，改名不影响互动播放列表。
 
 新版附带的语音清单会按 ID 补齐缺失条目，保留用户已存在的条目、标签和同名录音；首次合并前会把用户清单备份为 `media/voices/manifest.before-bundled-import.json`。已存在的子目录也会补齐其中缺失的文件，不覆盖用户文件。

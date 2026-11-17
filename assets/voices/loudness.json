@@ -441,6 +441,226 @@
       "gainDb": 12.93,
       "estimatedLufs": -18.0,
       "peakLimited": false
+    },
+    {
+      "id": "song_789bd0dbbbaf4a429469bf5e85d900fd",
+      "file": "music/song_789bd0dbbbaf4a429469bf5e85d900fd.mp3",
+      "sha256": "b6a3f425ff6ff310f77092aa8d2ed10c920bcf0fb37bd21d4c44f65aadd0e2fa",
+      "integratedLufs": -32.4,
+      "truePeakDb": -21.19,
+      "gainDb": 14.4,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_177b299eef7149ce9771f7282f7390db",
+      "file": "music/song_177b299eef7149ce9771f7282f7390db.mp3",
+      "sha256": "c7c6976a1dda2389a21a88d62e3b954b5e93ff2d27ce9df52b3fb28cf000a025",
+      "integratedLufs": -31.58,
+      "truePeakDb": -19.44,
+      "gainDb": 13.58,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_041d50547f504ee88e216216e909de5d",
+      "file": "music/song_041d50547f504ee88e216216e909de5d.mp3",
+      "sha256": "787be745fb7fb0432d1c464e3241e63aea6984f3de248be6336cde752433b925",
+      "integratedLufs": -17.33,
+      "truePeakDb": -9.77,
+      "gainDb": -0.67,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_a6a80b8bfeec4fc09652927c09198a30",
+      "file": "music/song_a6a80b8bfeec4fc09652927c09198a30.mp3",
+      "sha256": "91537754a89ec791c25dd270c3ddcfeed6068cf88d27ce25a0f274713232cae0",
+      "integratedLufs": -21.07,
+      "truePeakDb": -10.85,
+      "gainDb": 3.07,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_4a47c51a3a084f9ea5f473481d346ef1",
+      "file": "music/song_4a47c51a3a084f9ea5f473481d346ef1.mp3",
+      "sha256": "53ce35cb4798bf3ffe0f23f1456739f7788a41f6e59dfc639fd7fe948050efc5",
+      "integratedLufs": -22.06,
+      "truePeakDb": -14.64,
+      "gainDb": 4.06,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_37e034a93c924064a17fbd87a4479c6a",
+      "file": "music/song_37e034a93c924064a17fbd87a4479c6a.mp3",
+      "sha256": "4fb2e94a1b2701ee7bb4f3dd0d18cf734ec4b68c8532a32996b4c1172d3ab29b",
+      "integratedLufs": -17.37,
+      "truePeakDb": -10.44,
+      "gainDb": -0.63,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_6c3dc70e964c4a3ab4b44c5accf74528",
+      "file": "music/song_6c3dc70e964c4a3ab4b44c5accf74528.mp3",
+      "sha256": "2084a5f25dd625629c829a64e980292cd69899ae6878fd47c50d9d4bf332c35e",
+      "integratedLufs": -17.16,
+      "truePeakDb": -10.29,
+      "gainDb": -0.84,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_44491098b3a24f0d8990ff1975b68398",
+      "file": "music/song_44491098b3a24f0d8990ff1975b68398.mp3",
+      "sha256": "c929b3a270a1e32c9602e72184ebc36c3a69b0fcb40f306c4626c12ecf81a038",
+      "integratedLufs": -19.35,
+      "truePeakDb": -11.22,
+      "gainDb": 1.35,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_1a070bd663114046876298b4164daaa9",
+      "file": "music/song_1a070bd663114046876298b4164daaa9.mp3",
+      "sha256": "6f635598ba04b544bb398399ab7da587cf1485d9207a0a0ef894a3e9893f39dd",
+      "integratedLufs": -17.95,
+      "truePeakDb": -9.76,
+      "gainDb": -0.05,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_c10a2a79800d429bbd1012a702a5e9c3",
+      "file": "music/song_c10a2a79800d429bbd1012a702a5e9c3.mp3",
+      "sha256": "05f96d678911a52290afff02a0c2eee11b58fad4de287425e517ade5eab814ef",
+      "integratedLufs": -17.32,
+      "truePeakDb": -10.35,
+      "gainDb": -0.68,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_8d0fa494bcc84da3b9f564e38de336ae",
+      "file": "music/song_8d0fa494bcc84da3b9f564e38de336ae.mp3",
+      "sha256": "464c5e5b3ce341e5341ccd3646c0872b4a87b0c21d04b090bb6431114dd085a4",
+      "integratedLufs": -17.24,
+      "truePeakDb": -10.58,
+      "gainDb": -0.76,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_b94227681817484b8f0065afceb89fa4",
+      "file": "music/song_b94227681817484b8f0065afceb89fa4.mp3",
+      "sha256": "7998a0a05cf31cd889f40c18ce8b6515c9c4051d6521dde1cbe466e5762688ba",
+      "integratedLufs": -22.25,
+      "truePeakDb": -13.97,
+      "gainDb": 4.25,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_3519368bb9e540fca1f248048bfbb6dc",
+      "file": "music/song_3519368bb9e540fca1f248048bfbb6dc.mp3",
+      "sha256": "13582de3e4a4dff9a06cd79425020a9d80bc88907c7d63a8f5cc9e165c4b94da",
+      "integratedLufs": -17.39,
+      "truePeakDb": -10.93,
+      "gainDb": -0.61,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_3d02d9bf15054b4db31f62b5b3cdd617",
+      "file": "music/song_3d02d9bf15054b4db31f62b5b3cdd617.mp3",
+      "sha256": "00ca8488507503daf1719389e76162d9ad1afe85fe6835d45bc69da4cbcf11aa",
+      "integratedLufs": -22.61,
+      "truePeakDb": -11.33,
+      "gainDb": 4.61,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_883953cf9e2a494ab5fbdfde654b41e1",
+      "file": "music/song_883953cf9e2a494ab5fbdfde654b41e1.mp3",
+      "sha256": "1eb5b0cd22979da3cb287599c977b4156774b007855c70c3807d7600d06b4cc4",
+      "integratedLufs": -18.83,
+      "truePeakDb": -10.41,
+      "gainDb": 0.83,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_fb14a8abdb1c4cf0b137a80df5cfdf46",
+      "file": "music/song_fb14a8abdb1c4cf0b137a80df5cfdf46.mp3",
+      "sha256": "d60f4c68902b38bdfa657c4a71088c75b01cf3a7ed06921ffbd111d6a6747fdd",
+      "integratedLufs": -18.18,
+      "truePeakDb": -9.12,
+      "gainDb": 0.18,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_c7c6f2be649847249157841260f028e1",
+      "file": "music/song_c7c6f2be649847249157841260f028e1.mp3",
+      "sha256": "38a52c2658fcd4825787d83bd3e346f3fed619e11e6e4fcd66380c2f5cfe5994",
+      "integratedLufs": -17.08,
+      "truePeakDb": -10.09,
+      "gainDb": -0.92,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_1fbfc8d847d34a399dfbced14164ccf6",
+      "file": "music/song_1fbfc8d847d34a399dfbced14164ccf6.mp3",
+      "sha256": "8589df10b61022cefc6784a7029adfdc086fdd6ea36a0c068e6c161d980dcb8f",
+      "integratedLufs": -18.88,
+      "truePeakDb": -10.19,
+      "gainDb": 0.88,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_265443655eb14256a5081cf5903fda75",
+      "file": "music/song_265443655eb14256a5081cf5903fda75.mp3",
+      "sha256": "f74f7e43aa5f355f75dbd6a06dcc9eaf2b1b0de44d35a9f3c97893ce5c62ad64",
+      "integratedLufs": -18.17,
+      "truePeakDb": -6.03,
+      "gainDb": 0.17,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_f2992a78d53a4e9f99f8836ff48e3728",
+      "file": "music/song_f2992a78d53a4e9f99f8836ff48e3728.mp3",
+      "sha256": "6d4d87b919a401e303e7d0e3d89050752f6e58e46a78df181c5591727afaa9a3",
+      "integratedLufs": -17.45,
+      "truePeakDb": -10.61,
+      "gainDb": -0.55,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_3a25c39e01d74514b3fa266b18e49818",
+      "file": "music/song_3a25c39e01d74514b3fa266b18e49818.mp3",
+      "sha256": "e0b249ee494d9c4d89401bbb1a65fb750565a6c56fae27c12b8ab93ff1266dd9",
+      "integratedLufs": -26.57,
+      "truePeakDb": -12.32,
+      "gainDb": 8.57,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_song_4c40242c422180cf5cbf",
+      "file": "lanjie/唱歌/嗦面后的小小奇迹1.mp3",
+      "sha256": "e0b249ee494d9c4d89401bbb1a65fb750565a6c56fae27c12b8ab93ff1266dd9",
+      "integratedLufs": -26.57,
+      "truePeakDb": -12.32,
+      "gainDb": 8.57,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
     }
   ]
 }

@@ -411,6 +411,167 @@
       "group": "歌曲",
       "music": true,
       "random": false
+    },
+    {
+      "id": "song_041d50547f504ee88e216216e909de5d",
+      "label": "Ham",
+      "file": "music/song_041d50547f504ee88e216216e909de5d.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_a6a80b8bfeec4fc09652927c09198a30",
+      "label": "I really want to stay at you house",
+      "file": "music/song_a6a80b8bfeec4fc09652927c09198a30.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_4a47c51a3a084f9ea5f473481d346ef1",
+      "label": "lemon",
+      "file": "music/song_4a47c51a3a084f9ea5f473481d346ef1.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_37e034a93c924064a17fbd87a4479c6a",
+      "label": "magnet",
+      "file": "music/song_37e034a93c924064a17fbd87a4479c6a.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_6c3dc70e964c4a3ab4b44c5accf74528",
+      "label": "Unravel",
+      "file": "music/song_6c3dc70e964c4a3ab4b44c5accf74528.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_44491098b3a24f0d8990ff1975b68398",
+      "label": "カタオモイ",
+      "file": "music/song_44491098b3a24f0d8990ff1975b68398.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_1a070bd663114046876298b4164daaa9",
+      "label": "爱言叶",
+      "file": "music/song_1a070bd663114046876298b4164daaa9.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_c10a2a79800d429bbd1012a702a5e9c3",
+      "label": "春泥棒",
+      "file": "music/song_c10a2a79800d429bbd1012a702a5e9c3.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_8d0fa494bcc84da3b9f564e38de336ae",
+      "label": "春擬き",
+      "file": "music/song_8d0fa494bcc84da3b9f564e38de336ae.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_b94227681817484b8f0065afceb89fa4",
+      "label": "打上花火",
+      "file": "music/song_b94227681817484b8f0065afceb89fa4.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_3519368bb9e540fca1f248048bfbb6dc",
+      "label": "过火",
+      "file": "music/song_3519368bb9e540fca1f248048bfbb6dc.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_3d02d9bf15054b4db31f62b5b3cdd617",
+      "label": "花に亡霊",
+      "file": "music/song_3d02d9bf15054b4db31f62b5b3cdd617.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_883953cf9e2a494ab5fbdfde654b41e1",
+      "label": "晴天",
+      "file": "music/song_883953cf9e2a494ab5fbdfde654b41e1.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_fb14a8abdb1c4cf0b137a80df5cfdf46",
+      "label": "人是猫",
+      "file": "music/song_fb14a8abdb1c4cf0b137a80df5cfdf46.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_c7c6f2be649847249157841260f028e1",
+      "label": "撒野",
+      "file": "music/song_c7c6f2be649847249157841260f028e1.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_1fbfc8d847d34a399dfbced14164ccf6",
+      "label": "我的悲伤是水做的",
+      "file": "music/song_1fbfc8d847d34a399dfbced14164ccf6.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_265443655eb14256a5081cf5903fda75",
+      "label": "嘘月",
+      "file": "music/song_265443655eb14256a5081cf5903fda75.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_f2992a78d53a4e9f99f8836ff48e3728",
+      "label": "雨爱",
+      "file": "music/song_f2992a78d53a4e9f99f8836ff48e3728.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_3a25c39e01d74514b3fa266b18e49818",
+      "label": "嗦面后的小小奇迹1",
+      "file": "music/song_3a25c39e01d74514b3fa266b18e49818.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "lanjie_song_4c40242c422180cf5cbf",
+      "label": "嗦面后的小小奇迹1",
+      "file": "lanjie/唱歌/嗦面后的小小奇迹1.mp3",
+      "group": "唱歌",
+      "music": true,
+      "random": false,
+      "duration": 138.456
     }
   ]
 }

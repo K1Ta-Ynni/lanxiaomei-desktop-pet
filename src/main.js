@@ -9,10 +9,11 @@ import { FEATURES, ACTIONS, INTERACTIONS, DEFAULT_PREFERENCES, validatePreferenc
 import { UpdateManager, RELEASES_URL, prepareInstallJob } from './updates.js';
 import { prepareMedia } from './media.js';
 import { MediaLibrary } from './media-library.js';
+import { AudioNormalizer } from './audio-normalizer.js';
 import { bottomRightPosition, petWindowSize } from './geometry.js';
 import { PetPlacement } from './pet-placement.js';
 import { PlaylistPlayer, playlistItems, defaultVoiceSelection } from './playlist.js';
-import { MusicQueue, MAX_SONG_BYTES, isSong } from './music.js';
+import { MusicQueue, MAX_SONG_BYTES, MAX_VOICE_BYTES, isSong } from './music.js';
 import { CHAT_TOOLS, hasExplicitMediaIntent, findMedia, matchSticker, musicControlAction } from './chat-tools.js';
 import { chatSystemPrompt, rememberExplicit, validateMemories } from './chat-memory.js';
 import { SpeechInput } from './speech.js';
@@ -26,6 +27,21 @@ if (process.env.PET_STARTER_DATA_DIR) app.setPath('userData', resolve(process.en
 else app.setPath('userData', join(app.getPath('appData'), 'lanxiaomei-desktop-pet'));
 const userData = app.getPath('userData');
 const mediaLibrary = new MediaLibrary(join(userData, 'media-library.json'));
+const loudnessPath = join(userData, 'audio-loudness.json');
+const audioNormalizer = new AudioNormalizer(loudnessPath, async () => {
+  const window = new BrowserWindow({ width: 1, height: 1, show: false, skipTaskbar: true,
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false } });
+  guardWindow(window);
+  try { await window.loadFile(join(root, 'src', 'audio-analyzer.html')); }
+  catch (error) { window.destroy(); throw error; }
+  return {
+    measure: src => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { window.destroy(); reject(new Error('音频分析超时')); }, 120000);
+      window.webContents.executeJavaScript(`window.measureAudio(${JSON.stringify(src)})`).then(resolve, reject).finally(() => clearTimeout(timer));
+    }),
+    close: () => { if (!window.isDestroyed()) window.destroy(); },
+  };
+});
 const settingsPath = join(userData, 'settings.json');
 const memoryPath = join(userData, 'conversation.json');
 const profileMemoryPath = join(userData, 'assistant-memory.json');
@@ -418,14 +434,19 @@ ipcMain.handle('updates:install', async () => {
     const processStarted = execFileSync('powershell.exe', ['-NoProfile', '-Command', `(Get-Process -Id ${process.pid}).StartTime.ToUniversalTime().ToString('o')`], { encoding: 'utf8', windowsHide: true }).trim();
     const job = await prepareInstallJob({ downloaded: updates.downloaded, installDirectory, executable: basename(process.execPath), pid: process.pid, processStarted,
       directory: updatesDirectory, script: join(root, 'src', 'install-update.ps1') });
-    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', join(job, 'install.ps1'), '-JobFile', join(job, 'job.json')],
-      { cwd: job, detached: true, stdio: 'ignore', windowsHide: true });
+    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'src', 'start-update.ps1'), '-JobDirectory', job],
+      { cwd: job, detached: false, stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
     let helperError;
+    let launcherExit;
+    let launcherDetails = '';
+    child.stderr.on('data', chunk => { launcherDetails = (launcherDetails + chunk.toString()).slice(-4000); });
+    child.on('exit', code => { launcherExit = code; });
     child.on('error', error => { helperError = error; });
     child.unref();
     const deadline = Date.now() + 120000;
     while (Date.now() < deadline) {
       if (helperError) throw helperError;
+      if (launcherExit !== undefined && launcherExit !== 0) throw new Error(`无法启动更新安装进程（退出码 ${launcherExit}）。${launcherDetails}`);
       const result = await readJson(join(job, 'result.json'), null);
       if (result?.state === 'ready') {
         updates.update({ phase: 'installing' });
@@ -433,9 +454,11 @@ ipcMain.handle('updates:install', async () => {
         return { restarting: true };
       }
       if (result && ['error', 'restore-required'].includes(result.state)) throw new Error(`更新准备失败：${result.message}`);
+      const launched = await readJson(join(job, 'helper-launch.json'), null);
+      if (launcherExit === 0 && !launched) throw new Error(`更新启动器结束但未创建安装进程。诊断目录：${job}`);
       await new Promise(resolve => setTimeout(resolve, 250));
     }
-    throw new Error('更新准备超时，当前桌宠继续运行。可稍后重试。');
+    throw new Error(`更新准备超时，当前桌宠继续运行。诊断日志位于：${job}`);
   } catch (error) {
     updates.update({ phase: 'error', error: error.message });
     throw error;
@@ -653,35 +676,54 @@ function controlMusic(command) {
   return { performed: true };
 }
 ipcMain.handle('music:status', () => ({ ...musicState, mode: preferences.musicPlaylist.mode }));
-let musicImportBusy = false;
-ipcMain.handle('music:import', async () => {
-  if (musicImportBusy) throw new Error('正在添加歌曲，请稍候。');
-  musicImportBusy = true;
+let audioImportBusy = false;
+function audioProgress(value) { settingsWindow?.webContents.send('audio:progress', value); }
+async function importAudio(event, music) {
+  if (event.sender !== settingsWindow?.webContents) throw new Error('请在蓝神のLivehouse 中添加音频。');
+  if (audioImportBusy) throw new Error('正在处理音频，请稍候。');
+  audioImportBusy = true;
   try {
-    const selected = await dialog.showOpenDialog(settingsWindow || petWindow, { title: '添加本地歌曲', properties: ['openFile', 'multiSelections'], filters: [{ name: '音频', extensions: ['mp3', 'wav', 'ogg'] }] });
+    const selected = await dialog.showOpenDialog(settingsWindow, { title: music ? '添加本地歌曲' : '添加本地语音', properties: ['openFile', 'multiSelections'], filters: [{ name: '音频', extensions: ['mp3', 'wav', 'ogg'] }] });
     if (selected.canceled) return { imported: 0, warnings: [] };
     const manifestPath = join(voicesDirectory, 'manifest.json');
     const manifest = await readJson(manifestPath, { clips: [] });
     if (!Array.isArray(manifest.clips)) throw new Error('语音清单格式不正确。');
-    const directory = join(voicesDirectory, 'music');
+    const subdirectory = music ? 'music' : 'imported';
+    const directory = join(voicesDirectory, subdirectory);
     await mkdir(directory, { recursive: true });
     let imported = 0;
     const warnings = [];
-    for (const path of selected.filePaths) {
+    const ids = [];
+    for (const path of selected.filePaths.slice(0, 200)) {
       if (manifest.clips.length >= 200) { warnings.push('清单最多 200 项。'); break; }
       try {
         const info = await stat(path);
-        if (!info.isFile() || info.size > MAX_SONG_BYTES || !['.mp3', '.wav', '.ogg'].includes(extname(path).toLowerCase())) throw new Error('invalid');
-        const id = 'song_' + randomUUID().replaceAll('-', '');
+        if (!info.isFile() || info.size === 0 || info.size > (music ? MAX_SONG_BYTES : MAX_VOICE_BYTES) || !['.mp3', '.wav', '.ogg'].includes(extname(path).toLowerCase())) throw new Error('invalid');
+        const id = (music ? 'song_' : 'voice_') + randomUUID().replaceAll('-', '');
         const filename = id + extname(path).toLowerCase();
         await copyFile(path, join(directory, filename), 1);
-        manifest.clips.push({ id, label: basename(path, extname(path)).slice(0, 60), file: 'music/' + filename, group: '歌曲', music: true, random: false });
+        manifest.clips.push({ id, label: basename(path, extname(path)).slice(0, 60), file: subdirectory + '/' + filename, group: music ? '歌曲' : '我的语音', music, random: !music });
+        ids.push(id);
         ++imported;
-      } catch { warnings.push(`未添加 ${basename(path)}：文件不可用或超过 500 MiB。`); }
+      } catch { warnings.push(`未添加 ${basename(path)}：文件不可用或超过 ${music ? 500 : 30} MiB。`); }
     }
     if (imported) await writeJson(manifestPath, manifest);
-    return { imported, warnings };
-  } finally { musicImportBusy = false; }
+    const catalog = await readVoiceCatalog();
+    const normalized = await audioNormalizer.normalize(catalog.clips.filter(clip => ids.includes(clip.id)), value => audioProgress({ ...value, kind: music ? 'music' : 'voice' }));
+    return { imported, warnings: [...warnings, ...normalized.warnings], analyzed: normalized.analyzed };
+  } finally { audioImportBusy = false; audioProgress({ done: true }); }
+}
+ipcMain.handle('music:import', event => importAudio(event, true));
+ipcMain.handle('companion:voice-import', event => importAudio(event, false));
+ipcMain.handle('audio:normalize', async (event, kind) => {
+  if (event.sender !== settingsWindow?.webContents || !['voice', 'music'].includes(kind)) throw new Error('请在素材页面选择要均衡的音频类型。');
+  if (audioImportBusy) throw new Error('正在处理音频，请稍候。');
+  audioImportBusy = true;
+  try {
+    const catalog = await readVoiceCatalog();
+    return await audioNormalizer.normalize(catalog.clips.filter(clip => isSong(clip) === (kind === 'music')),
+      value => audioProgress({ ...value, kind }));
+  } finally { audioImportBusy = false; audioProgress({ done: true }); }
 });
 ipcMain.handle('settings:read', () => ({
   mode: settings.mode || 'basic',
@@ -987,7 +1029,7 @@ app.on('will-quit', () => { tray?.destroy(); tray = null; });
 
 async function readVoiceCatalog() {
   try {
-    const catalog = await loadVoices(voicesDirectory, { loudnessDirectory: join(root, 'assets', 'voices') });
+    const catalog = await loadVoices(voicesDirectory, { loudnessDirectory: join(root, 'assets', 'voices'), loudnessPath });
     return { ...catalog,
       clips: catalog.clips.map(clip => mediaLibrary.decorate(isSong(clip) ? 'music' : 'voice', [clip])[0]),
       groups: mediaLibrary.groups('voice', catalog.clips.filter(clip => !isSong(clip))),

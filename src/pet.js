@@ -346,6 +346,7 @@ function applyPreferences(value) {
   document.documentElement.style.setProperty('--pet-height', value.displaySize.height + 'px');
   document.querySelector('#music-widget').dataset.density = preferences.scale < 0.85 ? 'compact' : preferences.scale < 1.2 ? 'standard' : 'full';
   if (audio) { audio.volume = preferences.volume; audio.muted = preferences.muted; }
+  if (voiceGain) voiceGain.gain.value = 10 ** ((preferences.normalizeAudio ? activeClip?.gainDb || 0 : 0) / 20);
   if (wasPreloading !== undefined && wasPreloading !== resourceOption('preloadExpressions')) {
     if (resourceOption('preloadExpressions')) void preloadExpressionImages().then(() => { scheduleBlink(); scheduleRestingExpression(); });
     else {
@@ -411,7 +412,7 @@ async function playVoice(clip) {
     audioContext ??= new AudioContext();
     audioSource = audioContext.createMediaElementSource(current);
     voiceGain = audioContext.createGain();
-    voiceGain.gain.value = 10 ** ((clip.gainDb || 0) / 20);
+    voiceGain.gain.value = 10 ** ((preferences.normalizeAudio ? clip.gainDb || 0 : 0) / 20);
     audioSource.connect(voiceGain).connect(audioContext.destination);
     await audioContext.resume();
     if (audio !== current) return;

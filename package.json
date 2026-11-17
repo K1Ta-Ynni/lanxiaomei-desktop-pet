@@ -31,7 +31,9 @@
     "test:package": "node scripts/smoke-package.mjs",
     "test:updates": "node --test test/updates.test.js",
     "test:updater": "node scripts/smoke-updater.mjs",
-    "test:upgrade-v2": "node scripts/smoke-upgrade-v2.mjs"
+    "test:upgrade-v2": "node scripts/smoke-upgrade-v2.mjs",
+    "test:update-lifecycle": "node scripts/smoke-update-lifecycle.mjs",
+    "test:audio-import": "node scripts/smoke-audio-import.mjs"
   },
   "devDependencies": {
     "electron": "39.8.10",
