@@ -146,7 +146,7 @@ try {
   await settings.locator('#save-model').click();
   await chat.waitForFunction(() => document.querySelector('#input').disabled);
   const before = requests.length;
-  assert.match(await chat.evaluate(async () => { try { await window.petApp.sendMessage('hello'); return ''; } catch (error) { return error.message; } }), /基础桌宠模式/u);
+  assert.match(await chat.evaluate(async () => { try { await window.petApp.sendMessage('hello'); return ''; } catch (error) { return error.message; } }), /AI 聊天尚未开启/u);
   assert.equal(requests.length, before);
   assert.equal((await chat.evaluate(() => window.petApp.readSettings())).apiKeyConfigured, true);
   await settings.locator('#assistant-mode').selectOption('companion'); await settings.locator('#save-model').click();
@@ -240,7 +240,7 @@ while ($true) {
   await chat.locator('#speech-wake').check();
   await pet.waitForFunction(async () => (await window.petApp.speechStatus()).running);
   await pet.evaluate(() => window.petApp.setGameMode(true));
-  assert.equal((await pet.evaluate(() => window.petApp.speechStatus())).running, false, 'game mode stops the microphone');
+  assert.equal((await pet.evaluate(() => window.petApp.speechStatus())).running, true, 'game mode only enables click-through and preserves existing speech listening');
   await pet.evaluate(() => window.petApp.setGameMode(false));
   await chat.close();
   assert.deepEqual(errors, []);

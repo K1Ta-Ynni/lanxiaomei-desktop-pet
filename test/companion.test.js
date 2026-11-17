@@ -21,6 +21,14 @@ test('shared interaction catalog exposes all local actions through a bounded com
   }
 });
 
+test('legacy fixed portraits migrate to a one-item expression playlist', () => {
+  const { expressionPlaylist, ...legacy } = DEFAULT_PREFERENCES;
+  assert.deepEqual(validatePreferences(legacy).expressionPlaylist, expressionPlaylist);
+  assert.deepEqual(validatePreferences({ ...legacy, portraitMode: 'smile' }).expressionPlaylist, { mode: 'repeat', ids: ['smile'] });
+  assert.deepEqual(validatePreferences({ ...legacy, expressionPlaylist: { mode: 'sequence', ids: [] } }).expressionPlaylist, { mode: 'sequence', ids: [] });
+  assert.throws(() => validatePreferences({ ...legacy, expressionPlaylist: { mode: 'invalid', ids: [] } }));
+});
+
 test('voice manifest fences files to its own directory and skips missing entries', async () => {
   const temp = await mkdtemp(join(tmpdir(), 'pet-voices-'));
   try {

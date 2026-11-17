@@ -1,6 +1,6 @@
 {
   "name": "lanxiaomei-desktop-pet",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "蓝小妹桌宠：面向蓝世_1967粉丝的开源桌面互动小伙伴。",
   "productName": "蓝小妹桌宠",
   "homepage": "https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet",
@@ -25,12 +25,13 @@
     "test:settings": "node scripts/smoke-settings.mjs",
     "test:dpi": "node scripts/smoke-dpi.mjs",
     "test:music": "node scripts/smoke-music.mjs",
+    "test:library": "node scripts/smoke-library.mjs",
+    "test:topmost": "node scripts/smoke-topmost.mjs",
     "package:windows": "node scripts/package-windows.mjs",
-    "package:basic": "node scripts/package-windows.mjs --edition=basic",
-    "package:companion": "node scripts/package-windows.mjs --edition=companion",
     "test:package": "node scripts/smoke-package.mjs",
     "test:updates": "node --test test/updates.test.js",
-    "test:updater": "node scripts/smoke-updater.mjs"
+    "test:updater": "node scripts/smoke-updater.mjs",
+    "test:upgrade-v2": "node scripts/smoke-upgrade-v2.mjs"
   },
   "devDependencies": {
     "electron": "39.8.10",

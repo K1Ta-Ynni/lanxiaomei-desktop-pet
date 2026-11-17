@@ -1,5 +1,5 @@
 ﻿const pet = document.querySelector('#pet');
-import { playlistItems, defaultVoiceSelection } from './playlist.js';
+import { playlistItems, defaultVoiceSelection, PlaylistPlayer } from './playlist.js';
 import { isSong } from './music.js';
 import { singerMode } from './pet-music.js';
 
@@ -16,6 +16,7 @@ let pointerId, downAt, greetingTimer, actionTimer;
 let helloSequence = 0;
 let audioContext, audioSource, voiceGain;
 let suspended = false;
+let clickThrough = false;
 const portrait = pet.querySelector('img');
 let blinkSource, normalSource, blinkTimer, blinkEndTimer, expressionTimer, blinking = false;
 const decodedExpressions = new Map();
@@ -25,6 +26,9 @@ let normalDimensions, expressionSequence = 0, expressionCacheEpoch = 0;
 function resourceOption(key) { return !preferences?.lowResourceMode && preferences?.[key]; }
 let controlsTimer;
 let restingExpression = 'normal', restingTimer, speakingTimer, mouthOpen = false;
+let restingPlaylistKey;
+const restingPlayer = new PlaylistPlayer();
+let musicFrameSource, musicFrameTimer, musicFrameLoad, musicAnimationSequence = 0;
 let clicks = 0, lastClickAt = 0;
 
 function closePicker() {
@@ -116,14 +120,21 @@ async function openPicker() {
 
 function scheduleRestingExpression() {
   clearTimeout(restingTimer);
-  const mode = preferences?.portraitMode || 'auto';
-  if (mode !== 'auto') restingExpression = mode;
+  const catalog = ['normal', ...Object.keys(info?.expressions || {})].map(id => ({ id }));
+  const playlist = preferences?.expressionPlaylist || { mode: 'random', ids: null };
+  const defaultSelected = item => (info?.idleExpressions || ['normal']).includes(item.id);
+  const choices = playlistItems(catalog, playlist, defaultSelected);
+  const key = JSON.stringify([playlist.mode, choices.map(item => item.id)]);
+  if (key !== restingPlaylistKey) {
+    restingPlaylistKey = key;
+    restingExpression = restingPlayer.next(catalog, playlist, defaultSelected)?.id || 'normal';
+  }
+  if (!choices.length) restingExpression = 'normal';
   renderExpression();
-  if (suspended || preferences?.lowResourceMode || mode !== 'auto') return;
+  if (suspended || preferences?.lowResourceMode || choices.length <= 1 || playlist.mode === 'repeat') return;
   restingTimer = setTimeout(() => {
     if (!sleeping && !audio && !downAt && !portrait.dataset.expression) {
-      const choices = (info.idleExpressions || ['normal']).filter(id => id !== restingExpression && (id === 'normal' || expressionPaths.has(id)));
-      if (choices.length) restingExpression = choices[Math.floor(Math.random() * choices.length)];
+      restingExpression = restingPlayer.next(catalog, playlist, defaultSelected)?.id || 'normal';
     }
     scheduleRestingExpression();
   }, 30000 + Math.random() * 30000);
@@ -131,14 +142,68 @@ function scheduleRestingExpression() {
 
 function speakingTick() {
   clearTimeout(speakingTimer);
-  if (!resourceOption('talkAnimation') || !audio || audio.paused || suspended || sleeping) { mouthOpen = false; renderExpression(); return; }
+  if (!resourceOption('talkAnimation') || !audio || activeClip?.kind === 'music' || audio.paused || suspended || sleeping) { mouthOpen = false; renderExpression(); return; }
   mouthOpen = !mouthOpen;
   renderExpression();
   speakingTimer = setTimeout(speakingTick, mouthOpen ? 170 + Math.random() * 150 : 110 + Math.random() * 130);
 }
 
+function musicPlaying() {
+  return activeClip?.kind === 'music' && audio && !audio.paused && !audio.ended && !sleeping && !suspended;
+}
+async function syncMusicAnimation() {
+  const sequence = ++musicAnimationSequence;
+  clearTimeout(musicFrameTimer);
+  if (!musicPlaying()) {
+    musicFrameSource = undefined;
+    musicFrameLoad = undefined;
+    renderExpression();
+    return;
+  }
+  if (!normalDimensions) return;
+  const still = preferences.lowResourceMode || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!musicFrameLoad || musicFrameLoad.still !== still) {
+    const configured = (info?.musicAnimation || []).filter(frame => frame.file && Number.isFinite(frame.duration) && frame.duration >= 80);
+    const frames = still ? configured.slice(0, 1) : configured;
+    // Keep these decoded images only during playback, separate from idle expressions.
+    const images = new Map();
+    musicFrameLoad = { still, promise: Promise.all(frames.map(async frame => {
+      if (!images.has(frame.file)) images.set(frame.file, (async () => {
+        const image = new Image();
+        image.src = '../' + frame.file;
+        await image.decode();
+        if (image.naturalWidth !== normalDimensions?.width || image.naturalHeight !== normalDimensions?.height) throw new Error('Music frame dimensions differ');
+        return image;
+      })());
+      return { image: await images.get(frame.file), duration: frame.duration };
+    })).catch(() => []) };
+  }
+  const frames = await musicFrameLoad.promise;
+  if (sequence !== musicAnimationSequence || !musicPlaying()) return;
+  if (!frames.length) { musicFrameSource = undefined; renderExpression(); return; }
+  const cycle = frames.reduce((total, frame) => total + frame.duration, 0);
+  function tick() {
+    if (sequence !== musicAnimationSequence || !musicPlaying()) return;
+    // Follow playback time so seeks and pauses cannot accumulate timing drift.
+    let position = still ? 0 : (audio.currentTime * 1000) % cycle;
+    const frame = frames.find(frame => {
+      if (position < frame.duration) return true;
+      position -= frame.duration;
+      return false;
+    }) || frames[0];
+    musicFrameSource = frame.image.getAttribute('src');
+    renderExpression();
+    if (!still) musicFrameTimer = setTimeout(tick, Math.max(16, frame.duration - position));
+  }
+  tick();
+}
+
 function renderExpression() {
   if (!normalSource) return;
+  if (!sleeping && !suspended && !portrait.dataset.expression && musicFrameSource) {
+    if (portrait.getAttribute('src') !== musicFrameSource) portrait.src = musicFrameSource;
+    return;
+  }
   const name = sleeping ? 'blink' : suspended ? 'normal' : portrait.dataset.expression || (blinking ? 'blink' : mouthOpen ? 'talk' : restingExpression);
   const source = decodedExpressions.get(name)?.getAttribute('src') || normalSource;
   if (portrait.getAttribute('src') !== source) portrait.src = source;
@@ -172,7 +237,7 @@ async function preloadExpressionImages() {
 function showExpression(name, duration = 1100) {
   if (suspended || sleeping) return;
   const sequence = ++expressionSequence;
-  if (!decodedExpressions.has(name)) {
+  if (name !== 'normal' && !decodedExpressions.has(name)) {
     void decodeExpression(name).then(image => { if (image && sequence === expressionSequence) showExpression(name, duration); });
     return;
   }
@@ -192,17 +257,17 @@ function scheduleBlink() {
   clearTimeout(blinkEndTimer);
   blinking = false;
   renderExpression();
-  if (!resourceOption('autoBlink') || sleeping || suspended || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!resourceOption('autoBlink') || sleeping || suspended || musicPlaying() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   blinkTimer = setTimeout(() => {
     void decodeExpression('blink').then(image => {
-      if (!image || !resourceOption('autoBlink') || sleeping || suspended) return;
+      if (!image || !resourceOption('autoBlink') || sleeping || suspended || musicPlaying()) return;
       blinking = true;
       renderExpression();
       blinkEndTimer = setTimeout(scheduleBlink, 150);
     });
   }, 3000 + Math.random() * 4000);
 }
-window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', scheduleBlink);
+window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { scheduleBlink(); void syncMusicAnimation(); });
 
 function revealControls() {
   if (suspended) return;
@@ -223,7 +288,8 @@ document.querySelector('.pet-tools').addEventListener('focusin', revealControls)
 document.querySelector('.pet-tools').addEventListener('focusout', revealControls);
 
 function applyDesktopState(state) {
-  suspended = state.gameMode || state.petHidden;
+  suspended = state.petHidden;
+  clickThrough = state.gameMode || state.petHidden;
   document.body.classList.toggle('game-mode', state.gameMode);
   if (suspended) {
     ++helloSequence;
@@ -245,11 +311,19 @@ function applyDesktopState(state) {
     stickerDisplay.hidden = true;
     window.petApp.dragEnd();
   }
+  if (clickThrough && downAt) {
+    if (pointerId !== undefined && pet.hasPointerCapture(pointerId)) pet.releasePointerCapture(pointerId);
+    pointerId = undefined;
+    downAt = undefined;
+    dragging = false;
+    window.petApp.dragEnd();
+  }
   if (!suspended) revealControls();
-  ignoring = suspended;
-  window.petApp.ignoreMouse(suspended);
+  ignoring = clickThrough;
+  window.petApp.ignoreMouse(clickThrough);
   scheduleBlink();
   scheduleRestingExpression();
+  void syncMusicAnimation();
 }
 
 function notice(text, duration = 5000) {
@@ -278,13 +352,14 @@ function applyPreferences(value) {
       expressionCacheEpoch++;
       expressionSequence++;
       expressionLoads.clear();
-      decodedExpressions.clear(); blinkSource = undefined; restingExpression = 'normal'; portrait.dataset.expression = '';
+      decodedExpressions.clear(); blinkSource = undefined; portrait.dataset.expression = '';
       renderExpression(); scheduleBlink(); scheduleRestingExpression();
     }
   }
   if (wasBlinking !== resourceOption('autoBlink')) scheduleBlink();
   if (wasTalking !== resourceOption('talkAnimation')) speakingTick();
   scheduleRestingExpression();
+  void syncMusicAnimation();
 }
 function animate(id) {
   if (sleeping || suspended) return;
@@ -297,8 +372,7 @@ function animate(id) {
 function stopVoice(report = true) {
   clearTimeout(speakingTimer);
   mouthOpen = false;
-  renderExpression();
-  if (!audio) return;
+  if (!audio) { void syncMusicAnimation(); return; }
   audioSource?.disconnect();
   voiceGain?.disconnect();
   audioSource = voiceGain = null;
@@ -311,6 +385,8 @@ function stopVoice(report = true) {
   audio = null;
   if (report) window.petApp.voiceStatus({ state: 'stopped', label: activeClip?.label, kind: activeClip?.kind, token: activeClip?.token });
   activeClip = null;
+  void syncMusicAnimation();
+  scheduleBlink();
 }
 async function playVoice(clip) {
   if (suspended) return;
@@ -328,8 +404,8 @@ async function playVoice(clip) {
   if (clip.kind === 'music') {
     current.ontimeupdate = () => report(current.paused ? 'paused' : 'playing');
     current.onloadedmetadata = () => report(current.paused ? 'loading' : 'playing');
-    current.onpause = () => { report('paused'); speakingTick(); };
-    current.onplay = () => { report('playing'); speakingTick(); };
+    current.onpause = () => { report('paused'); speakingTick(); void syncMusicAnimation(); scheduleBlink(); };
+    current.onplay = () => { report('playing'); speakingTick(); void syncMusicAnimation(); scheduleBlink(); };
   }
   try {
     audioContext ??= new AudioContext();
@@ -356,12 +432,12 @@ async function playVoice(clip) {
   try {
     await current.play();
     if (audio !== current) return;
-    if (clip.group === '唐笑') showExpression('laugh', 2000);
-    if (clip.group === '唐哭') showExpression('teary', 2000);
+    if (clip.kind !== 'music' && clip.group === '唐笑') showExpression('laugh', 2000);
+    if (clip.kind !== 'music' && clip.group === '唐哭') showExpression('teary', 2000);
     speakingTick();
     report('playing');
     if (clip.kind !== 'music') notice(clip.text || '♪ ' + clip.label, Math.max(1400, (clip.duration || 3) * 1000 + 500));
-    animate('greet');
+    if (clip.kind !== 'music') animate('greet');
   } catch { failed(); }
 }
 async function sayHello() {
@@ -408,7 +484,7 @@ async function sayHello() {
   }
 }
 pet.addEventListener('pointerdown', event => {
-  if (suspended || event.button !== 0) return;
+  if (clickThrough || event.button !== 0) return;
   pointerId = event.pointerId;
   downAt = { x: event.screenX, y: event.screenY };
   dragging = false;
@@ -447,7 +523,7 @@ pet.addEventListener('keydown', event => {
 let ignoring = false, ignoreTimer;
 window.addEventListener('mousemove', event => {
   const target = document.elementFromPoint(event.clientX, event.clientY);
-  const next = suspended || (!downAt && !target?.closest('button, .pet-tools, .bubble, .sticker-picker, .music-widget'));
+  const next = clickThrough || (!downAt && !target?.closest('button, .pet-tools, .bubble, .sticker-picker, .music-widget'));
   clearTimeout(ignoreTimer);
   if (next === ignoring) return;
   if (!next) {
@@ -539,6 +615,7 @@ window.petApp.onMusicControl(command => {
     });
   } else if (command.action === 'seek' && Number.isFinite(audio.duration)) {
     audio.currentTime = Math.max(0, Math.min(command.position, audio.duration));
+    void syncMusicAnimation();
   }
 });
 window.petApp.onVoiceStop(() => {
@@ -559,6 +636,7 @@ window.petApp.onState(state => {
   notice(sleeping ? '先休息一会儿……' : '醒啦！');
 });
 async function load() {
+  const startupSequence = helloSequence;
   info = await window.petApp.info();
   document.title = info.name;
   pet.querySelector('img').src = '../' + info.image;
@@ -580,9 +658,20 @@ async function load() {
     for (const [name, path] of Object.entries(info.expressions)) expressionPaths.set(name, path);
     if (resourceOption('preloadExpressions')) await preloadExpressionImages();
     scheduleBlink();
+    void syncMusicAnimation();
   }
-  notice(info.greetings[0]);
-  // Occasional silent motion; no automatic audio or model requests.
+  if (startupSequence === helloSequence && !suspended && !sleeping && !audio) {
+    notice(info.greetings[0]);
+    try {
+      const { clips } = await window.petApp.voices();
+      const entrances = clips.filter(clip => clip.group === '入场语音' && !isSong(clip));
+      if (entrances.length && startupSequence === helloSequence && !suspended && !sleeping && !audio) {
+        const clip = entrances[Math.floor(Math.random() * entrances.length)];
+        await window.petApp.playVoice(clip.id);
+      }
+    } catch { /* Missing entrance recordings retain the text greeting. */ }
+  }
+  // After the entrance, idle motions stay silent and make no model requests.
   setInterval(() => {
     if (!suspended && !preferences.lowResourceMode && preferences.idleActions && !sleeping && !downAt && !audio && Math.random() < 0.5) {
       const action = Math.random() < 0.35 ? 'jump' : 'sway';

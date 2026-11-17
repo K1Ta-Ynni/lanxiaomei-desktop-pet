@@ -160,12 +160,12 @@ try {
   await settings.locator('#check-updates').click();
   await settings.waitForFunction(() => document.querySelector('#update-result').textContent.includes('没有兼容当前系统的安装包'));
   assert.equal(await settings.locator('#download-update').isVisible(), false, 'incomplete release cannot download');
-  assert.match(await settings.locator('#voice-count').textContent(), /还没有录音/u);
+  assert.match(await settings.locator('#voice-count').textContent(), /还没有语音/u);
   await pet.screenshot({ path: join(artifacts, 'pet.png'), omitBackground: true });
   await settings.screenshot({ path: join(artifacts, 'settings.png'), fullPage: true });
 
   await settings.locator('[data-page=preferences]').click();
-  await settings.locator('#portraitMode').selectOption('normal');
+  await pet.evaluate(() => window.petApp.savePreferences({ portraitMode: 'normal' }));
   await settings.locator('#preferences-form').evaluate(form => form.requestSubmit());
   await settings.locator('[data-page=home]').click();
   await settings.locator('[data-expression=happy]').click();
@@ -211,7 +211,7 @@ try {
   // Basic mode blocks model calls while keeping the companion mode switch usable.
   await desktop.evaluate(() => { globalThis.fetch = () => { throw new Error('Unexpected network request'); }; });
   const basicError = await pet.evaluate(async () => { try { await window.petApp.sendMessage('hello'); return ''; } catch (error) { return error.message; } });
-  assert.match(basicError, /基础桌宠模式/u);
+  assert.match(basicError, /AI 聊天尚未开启/u);
   const chat = await waitPage('chat', () => pet.evaluate(() => window.petApp.openChat()));
   await chat.locator('.memory-drawer summary').click();
   assert.equal(await chat.locator('#input').isDisabled(), true);
@@ -302,7 +302,7 @@ try {
 
   // A transient expression restores the chosen portrait; auto mode rotates independently of motion.
   await settings.locator('[data-page=preferences]').click();
-  await settings.locator('#portraitMode').selectOption('smile');
+  await pet.evaluate(() => window.petApp.savePreferences({ portraitMode: 'smile' }));
   await settings.locator('#idleActions').uncheck();
   await settings.locator('#clickVoice').uncheck();
   await settings.locator('#preferences-form').evaluate(form => form.requestSubmit());
@@ -313,12 +313,14 @@ try {
   await pet.waitForFunction(() => document.querySelector('#pet img').getAttribute('src').endsWith('/portrait-smile.png'));
   await pet.clock.install();
   await settings.locator('[data-page=preferences]').click();
-  await settings.locator('#portraitMode').selectOption('auto');
+  await pet.evaluate(() => window.petApp.savePreferences({ portraitMode: 'auto' }));
   await settings.locator('#preferences-form').evaluate(form => form.requestSubmit());
   await settings.waitForFunction(async () => (await window.petApp.preferences()).portraitMode === 'auto');
+  const idleInfo = await pet.evaluate(() => window.petApp.info());
+  const idleSources = idleInfo.idleExpressions.map(id => '../' + (id === 'normal' ? idleInfo.image : idleInfo.expressions[id]));
   await pet.clock.fastForward(61000);
-  await pet.waitForFunction(() => /portrait-(?:desktop|shy|sleepy)\.png$/u.test(document.querySelector('#pet img').getAttribute('src')));
-  await settings.locator('#portraitMode').selectOption('normal');
+  await pet.waitForFunction(sources => sources.includes(document.querySelector('#pet img').getAttribute('src')), idleSources);
+  await pet.evaluate(() => window.petApp.savePreferences({ portraitMode: 'normal' }));
   await settings.locator('#preferences-form').evaluate(form => form.requestSubmit());
   await pet.waitForFunction(() => document.querySelector('#pet img').getAttribute('src').endsWith('/portrait-desktop.png'));
 
@@ -390,14 +392,15 @@ try {
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('播放完成'), { timeout: 12000 });
 
   // Playlists use real UI selections, save immediately and apply to the shared interaction API.
-  assert.equal(await settings.locator('[data-voice-playlist=test-song]').isChecked(), false, 'songs start outside the interactive playlist');
+  assert.equal(await settings.locator('[data-voice-playlist=test-song]').count(), 0, 'song checkboxes live in the music library');
+  assert.equal(await settings.locator('[data-voice-selected=test-song]').count(), 0, 'songs start outside the interactive playlist');
   assert.equal(await settings.locator('[data-voice-playlist=test]').isChecked(), true);
   await settings.locator('#voice-playlist-all').click();
-  await settings.waitForFunction(() => document.querySelector('[data-voice-playlist=test-song]').checked);
+  await settings.waitForFunction(() => Boolean(document.querySelector('[data-voice-selected=test-song]')));
   await settings.locator('#voice-playlist-clear').click();
   await settings.waitForFunction(() => document.querySelector('#voice-playlist-status').textContent.includes('已选 0 /'));
   assert.equal((await pet.evaluate(() => window.petApp.executeInteraction({ type: 'nextVoice' }))).empty, true);
-  await settings.locator('[data-voice-playlist=test-song]').check();
+  await pet.evaluate(() => window.petApp.executeInteraction({ type: 'setPlaylist', kind: 'voice', playlist: { mode: 'random', ids: ['test-song'] } }));
   await settings.waitForFunction(async () => (await window.petApp.preferences()).voicePlaylist.ids?.includes('test-song'));
   assert.equal((await pet.evaluate(() => window.petApp.executeInteraction({ type: 'nextVoice' }))).id, 'test-song', 'a song can be explicitly selected');
   await settings.locator('#voice-playlist-default').click();
@@ -433,7 +436,7 @@ try {
   await settings.screenshot({ path: join(artifacts, 'playlist-settings.png'), fullPage: true });
   await pet.evaluate(() => window.petApp.hideSticker());
 
-  // Modes are independent, apply to every interaction entry and never steal focus.
+  // Game mode only passes mouse input through; hidden mode still suspends media.
   assert.ok((await pet.evaluate(() => window.petApp.desktopState())).shortcutErrors.length <= 3, 'shortcut failures are reported without preventing the pet from starting');
   await desktop.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html'));
@@ -443,25 +446,22 @@ try {
   await settings.locator('[data-page=voices]').click();
   await settings.locator('[data-voice=test]').click();
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('正在播放'));
+  const beforeGameAnimation = await pet.locator('#pet img').evaluate(image => getComputedStyle(image).animationName);
   await settings.locator('[data-page=home]').click();
   await settings.locator('#game-mode').check();
   await pet.waitForFunction(() => document.body.classList.contains('game-mode'));
-  await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('已停止'));
+  assert.match(await settings.locator('#voice-result').textContent(), /正在播放/u, 'game mode keeps the current voice playing');
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true);
   assert.equal(await settings.locator('#pet-hidden').isChecked(), false);
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isFocusable()), false);
   await pet.evaluate(() => window.petApp.ignoreMouse(false));
   assert.equal(await desktop.evaluate(() => globalThis.lastPetMouseIgnore), true, 'renderer cannot undo game click-through');
-  for (const command of [{ type: 'greet' }, { type: 'jump' }, { type: 'sleep' }, { type: 'playVoice', id: 'test' }, { type: 'nextVoice' }, { type: 'nextSticker' }, { type: 'showSticker', id: '开心.png' }, { type: 'randomSticker' }, { type: 'showExpression', id: 'happy' }, { type: 'moveTo', x: 0, y: 0 }]) {
-    const message = await pet.evaluate(async command => {
-      try { await window.petApp.executeInteraction(command); return ''; } catch (error) { return error.message; }
-    }, command);
-    assert.match(message, /游戏模式/u);
+  assert.equal(await pet.locator('#pet img').evaluate(image => getComputedStyle(image).animationName), beforeGameAnimation, 'game mode retains animation preferences');
+  for (const command of [{ type: 'jump' }, { type: 'playVoice', id: 'test' }, { type: 'nextVoice' }, { type: 'nextSticker' }, { type: 'showSticker', id: '开心.png' }, { type: 'randomSticker' }, { type: 'showExpression', id: 'happy' }, { type: 'moveTo', x: 0, y: 0 }]) {
+    const result = await pet.evaluate(command => window.petApp.executeInteraction(command), command);
+    assert.equal(result.performed, true, 'game mode permits panel and API interactions: ' + command.type);
   }
-  assert.equal(await pet.locator('#bubble').isVisible(), false);
-  assert.equal(await pet.locator('.pet-tools').isVisible(), false);
-  assert.equal(await pet.locator('#pet img').evaluate(image => getComputedStyle(image).animationName), 'none');
-  assert.equal(await pet.locator('#pet img').getAttribute('src'), '../assets/portraits/portrait-desktop.png', 'game mode cancels blinking');
+  await pet.locator('#sticker').waitFor({ state: 'visible' });
   await settings.locator('#game-mode').uncheck();
   await pet.waitForFunction(() => !document.body.classList.contains('game-mode'));
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true,
@@ -527,7 +527,16 @@ try {
   await settings.locator('#game-mode').check();
   await settings.locator('#pet-hidden').check();
   await desktop.close();
+  await writeFile(join(fixture, 'assets', 'voices', 'manifest.json'), JSON.stringify({ clips: [
+    { id: 'startup', label: '入场测试', file: 'test.wav', group: '入场语音', text: '启动入场测试', random: false, duration: 5 },
+  ] }));
   pet = await launch();
+  await pet.waitForFunction(() => document.querySelector('#greeting').textContent === '启动入场测试');
+  await pet.evaluate(() => window.petApp.stopVoice());
+  await pet.evaluate(() => window.petApp.setPetHidden(true));
+  await pet.evaluate(() => window.petApp.setPetHidden(false));
+  await pet.waitForTimeout(300);
+  assert.equal(await pet.locator('#bubble').isVisible(), false, 'restoring the pet does not replay the entrance');
   const modes = await pet.evaluate(() => window.petApp.desktopState());
   assert.equal(modes.gameMode, false, 'game mode resets on restart');
   assert.equal(modes.petHidden, false, 'hidden state resets on restart');

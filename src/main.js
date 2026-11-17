@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain, screen, safeStorage, Menu, Tray, shell, dialog, net, globalShortcut } from 'electron';
 import { readFile, writeFile, mkdir, rename, copyFile, stat } from 'node:fs/promises';
-import { readFileSync } from 'node:fs';
 import { join, resolve, relative, isAbsolute, basename, extname, dirname } from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +8,7 @@ import { chatCompletionsUrl, DEFAULT_SETTINGS, validateSettings, isDeepSeekEndpo
 import { FEATURES, ACTIONS, INTERACTIONS, DEFAULT_PREFERENCES, validatePreferences, loadVoices, loadStickers } from './companion.js';
 import { UpdateManager, RELEASES_URL, prepareInstallJob } from './updates.js';
 import { prepareMedia } from './media.js';
+import { MediaLibrary } from './media-library.js';
 import { bottomRightPosition, petWindowSize } from './geometry.js';
 import { PetPlacement } from './pet-placement.js';
 import { PlaylistPlayer, playlistItems, defaultVoiceSelection } from './playlist.js';
@@ -18,15 +18,14 @@ import { chatSystemPrompt, rememberExplicit, validateMemories } from './chat-mem
 import { SpeechInput } from './speech.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
-let buildEdition = 'basic';
-try {
-  const value = JSON.parse(readFileSync(join(root, 'edition.json'), 'utf8')).edition;
-  if (['basic', 'companion'].includes(value)) buildEdition = value;
-} catch { /* Source and legacy builds default to the basic edition. */ }
+// Keep the legacy update identifier; all v2.1 builds share one product and update channel.
+// edition.json exists only so v2's installer can validate its transition package.
+const buildEdition = 'basic';
 const characterPath = join(root, 'character', 'character.json');
 if (process.env.PET_STARTER_DATA_DIR) app.setPath('userData', resolve(process.env.PET_STARTER_DATA_DIR));
 else app.setPath('userData', join(app.getPath('appData'), 'lanxiaomei-desktop-pet'));
 const userData = app.getPath('userData');
+const mediaLibrary = new MediaLibrary(join(userData, 'media-library.json'));
 const settingsPath = join(userData, 'settings.json');
 const memoryPath = join(userData, 'conversation.json');
 const profileMemoryPath = join(userData, 'assistant-memory.json');
@@ -65,7 +64,7 @@ async function drainSpeechQueue() {
   if (speechQueueBusy || chatBusy) return;
   speechQueueBusy = true;
   try {
-    while (speechQueue.length && companionEnabled() && !gameMode && !petHidden) {
+    while (speechQueue.length && companionEnabled() && !petHidden) {
       try { await sendChat(speechQueue.shift(), 'speech'); }
       catch (error) { petWindow?.webContents.send('pet:notice', error.message); }
     }
@@ -75,7 +74,7 @@ function handleSpeechEvent(event) {
   speechState = event;
   if (['stopped', 'error'].includes(event.type)) speechQueue.length = 0;
   const text = ['wake', 'transcript'].includes(event.type) && typeof event.text === 'string' ? event.text.trim().slice(0, 4000) : '';
-  if (text && companionEnabled() && !gameMode && !petHidden) {
+  if (text && companionEnabled() && !petHidden) {
     if (speechOptions?.autoSend !== false) {
       queueSpeechText(text);
     } else { speechDraft = text; openChat(); }
@@ -100,19 +99,28 @@ let tray;
 let quitting = false;
 let gameMode = false;
 let petHidden = false;
+let topmostTimer;
 const shortcuts = { game: 'Ctrl+Alt+G', hide: 'Ctrl+Alt+H' };
 const shortcutErrors = [];
 
 function desktopState() { return { gameMode, petHidden, shortcuts, shortcutErrors }; }
 function assertInteractive() {
-  if (gameMode) throw new Error('游戏模式已开启，请先按 Ctrl+Alt+G 或在面板中关闭。');
   if (petHidden) throw new Error('桌宠已隐藏，请先按 Ctrl+Alt+H 或在面板中显示。');
 }
+function maintainPetTopmost() {
+  if (quitting || petHidden || !petWindow || petWindow.isDestroyed() || !petWindow.isVisible() || petWindow.isMinimized()) return;
+  // Reassert native z-order without activating the pet or changing its geometry.
+  // Windows needs the higher Electron level to retain WS_EX_TOPMOST.
+  petWindow.setAlwaysOnTop(true, process.platform === 'win32' ? 'screen-saver' : 'floating');
+  petWindow.moveTop();
+}
 function syncDesktopState({ refreshPet = false } = {}) {
-  ++mediaSequence;
   petPlacement?.cancelDrag();
-  if (gameMode || petHidden) stopMusic();
-  if (gameMode || petHidden) speechInput.stop();
+  if (petHidden) {
+    ++mediaSequence;
+    stopMusic();
+    speechInput.stop();
+  }
   if (petWindow && !petWindow.isDestroyed()) {
     petWindow.setIgnoreMouseEvents(gameMode || petHidden, { forward: true });
     petWindow.setFocusable(!gameMode && !petHidden);
@@ -124,7 +132,7 @@ function syncDesktopState({ refreshPet = false } = {}) {
       if (petWindow.isMinimized()) petWindow.restore();
       if (refreshPet && petWindow.isVisible()) petWindow.hide();
       petWindow.showInactive();
-      petWindow.setAlwaysOnTop(true, 'floating');
+      maintainPetTopmost();
       if (refreshPet) petWindow.webContents.invalidate();
     }
   }
@@ -143,7 +151,7 @@ function setGameMode(value) {
 function setPetHidden(value) {
   const wasHidden = petHidden;
   petHidden = Boolean(value);
-  return syncDesktopState({ refreshPet: wasHidden && !petHidden && !gameMode });
+  return syncDesktopState({ refreshPet: wasHidden && !petHidden });
 }
 function restorePet() {
   if (!petWindow || petWindow.isDestroyed()) createPetWindow();
@@ -220,20 +228,20 @@ function makeMenu() {
     { label: currentName(), enabled: false },
     { type: 'separator' },
     { label: '显示桌宠', click: restorePet },
-    { label: '互动与语音', click: openSettings },
+    { label: '蓝神のLivehouse', click: openSettings },
     { label: '快速调整大小', submenu: [0.6, 0.8, 1, 1.2, 1.4, 1.6].map(scale => ({
       label: `${Math.round(scale * 100)}%`, type: 'checkbox', checked: Math.abs(preferences.scale - scale) < 0.001,
       click: () => { void savePreferences({ scale }).catch(error => petWindow?.webContents.send('pet:notice', error.message)); },
     })) },
-    { label: '动作', enabled: !gameMode && !petHidden, submenu: ACTIONS.map(action => ({ label: action.label, click: () => {
+    { label: '动作', enabled: !petHidden, submenu: ACTIONS.map(action => ({ label: action.label, click: () => {
       try { performAction(action.id); } catch { petWindow?.webContents.send('pet:notice', '蓝小妹在休息，先叫醒她吧。'); }
     } })) },
-    { label: '播放一条语音', enabled: randomVoices().length > 0 && !sleeping && !gameMode && !petHidden, click: () => {
+    { label: '播放一条语音', enabled: randomVoices().length > 0 && !sleeping && !petHidden, click: () => {
       void executeInteraction({ type: 'nextVoice' }).catch(error => petWindow?.webContents.send('pet:notice', error.message));
     } },
-    { label: companionEnabled() ? '文字聊天 · 陪伴版' : '文字聊天（当前为基础模式）', click: openChat },
+    { label: companionEnabled() ? '文字聊天' : '文字聊天（AI 未开启）', click: openChat },
     { label: speechInput.running ? '停止语音监听' : '恢复语音监听', type: 'checkbox', checked: speechInput.running,
-      enabled: companionEnabled() && !gameMode && !petHidden && (speechInput.running || speechOptions !== null),
+      enabled: companionEnabled() && !petHidden && (speechInput.running || speechOptions !== null),
       click: () => {
         if (speechInput.running) speechInput.stop();
         else if (speechOptions) {
@@ -242,7 +250,7 @@ function makeMenu() {
         }
         tray?.setContextMenu(makeMenu());
       } },
-    { label: sleeping ? '叫醒她' : '休息一下', enabled: !gameMode && !petHidden, click: toggleSleep },
+    { label: sleeping ? '叫醒她' : '休息一下', enabled: !petHidden, click: toggleSleep },
     { label: '游戏模式（Ctrl+Alt+G）', type: 'checkbox', checked: gameMode, click: () => setGameMode(!gameMode) },
     { label: '隐藏桌宠（Ctrl+Alt+H）', type: 'checkbox', checked: petHidden, click: () => setPetHidden(!petHidden) },
     { label: '回到主屏幕', click: () => { restorePet(); resetPosition(); } },
@@ -295,16 +303,19 @@ function createPetWindow() {
   }));
   petPlacement = new PetPlacement(petWindow, screen, { ...bottomRightPosition(area, windowSize), ...windowSize });
   petPlacement.place(petPlacement.bounds);
-  petWindow.setAlwaysOnTop(true, 'floating');
+  petWindow.setAlwaysOnTop(true, process.platform === 'win32' ? 'screen-saver' : 'floating');
   guardWindow(petWindow);
   petWindow.loadFile(join(root, 'src', 'pet.html'));
   petWindow.once('ready-to-show', syncDesktopState);
+  clearInterval(topmostTimer);
+  topmostTimer = setInterval(maintainPetTopmost, 500);
+  topmostTimer.unref();
   petWindow.on('close', event => {
     if (quitting) return;
     event.preventDefault();
     setPetHidden(true);
   });
-  petWindow.on('closed', () => { petWindow = null; petPlacement = null; });
+  petWindow.on('closed', () => { clearInterval(topmostTimer); petWindow = null; petPlacement = null; });
 }
 
 function openChat() {
@@ -337,7 +348,7 @@ function openSettings() {
   settingsWindow = new BrowserWindow(secureWindowOptions(Math.min(1080, area.width), Math.min(800, area.height), {
     minWidth: Math.min(760, area.width),
     minHeight: Math.min(580, area.height),
-    title: '蓝小妹 · 互动与语音',
+    title: '蓝神のLivehouse',
     backgroundColor: '#f4f7f5',
   }));
   settingsWindow.loadFile(join(root, 'src', 'settings.html'));
@@ -351,6 +362,7 @@ ipcMain.handle('pet:info', () => ({
   image: character.image || 'assets/mascot.svg', greetings: character.greetings,
   expressions: character.expressions || {},
   expressionLabels: character.expressionLabels || {}, idleExpressions: character.idleExpressions || ['normal'],
+  musicAnimation: character.musicAnimation || [],
   avatar: character.avatar || character.image || 'assets/mascot.svg',
   displaySize: displaySize(),
   features: { ...FEATURES, ai: companionEnabled() },
@@ -378,7 +390,7 @@ ipcMain.handle('desktop:hidden', (_event, value) => {
 ipcMain.handle('updates:status', () => ({ ...updates.snapshot(), canInstall: app.isPackaged && process.platform === 'win32' && process.arch === 'x64' }));
 ipcMain.handle('updates:check', (_event, options) => updates.check(
   typeof options === 'boolean' ? options : options?.includePrereleases !== false,
-  typeof options === 'object' ? options.edition || buildEdition : buildEdition,
+  buildEdition,
 ));
 ipcMain.handle('updates:download', () => updates.download());
 ipcMain.on('updates:cancel', () => updates.cancel());
@@ -432,8 +444,13 @@ ipcMain.handle('updates:install', async () => {
 function savePreferences(input) {
   preferencesSaving = preferencesSaving.catch(() => {}).then(async () => {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('互动设置格式不正确。');
-    const updated = validatePreferences({ ...preferences, ...input });
+    const merged = { ...preferences, ...input };
+    // Keep existing external callers that set portraitMode compatible.
+    if (Object.hasOwn(input, 'portraitMode') && !Object.hasOwn(input, 'expressionPlaylist')) merged.expressionPlaylist = input.portraitMode === 'auto'
+      ? { mode: 'random', ids: null } : { mode: 'repeat', ids: [input.portraitMode] };
+    const updated = validatePreferences(merged);
     if (!['auto', 'normal'].includes(updated.portraitMode) && !Object.hasOwn(character.expressions || {}, updated.portraitMode)) throw new Error('没有这个常驻表情。');
+    if (updated.expressionPlaylist.ids?.some(id => id !== 'normal' && !Object.hasOwn(character.expressions || {}, id))) throw new Error('表情列表中存在未配置的表情。');
     await writeJson(preferencesPath, updated);
     preferences = updated;
     tray?.setContextMenu(makeMenu());
@@ -459,7 +476,7 @@ async function executeInteraction(command) {
   switch (command.type) {
     case 'showExpression': {
       if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
-      if (typeof command.id !== 'string' || !Object.hasOwn(character.expressions || {}, command.id)) throw new Error('没有这个角色表情。');
+      if (typeof command.id !== 'string' || (command.id !== 'normal' && !Object.hasOwn(character.expressions || {}, command.id))) throw new Error('没有这个角色表情。');
       petWindow?.webContents.send('pet:expression', command.id);
       return { performed: true };
     }
@@ -483,7 +500,7 @@ async function executeInteraction(command) {
     case 'nextSticker':
     case 'randomSticker': {
       if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
-      const { stickers } = await loadStickers(stickersDirectory);
+      const { stickers } = await readStickerCatalog();
       if (sequence !== mediaSequence) return { performed: false, superseded: true };
       assertInteractive();
       if (sleeping) throw new Error('蓝小妹在休息，先叫醒她吧。');
@@ -500,8 +517,8 @@ async function executeInteraction(command) {
       return { performed: true };
     case 'setPreferences': return savePreferences(command.preferences);
     case 'setPlaylist': {
-      if (!['voice', 'sticker', 'music'].includes(command.kind)) throw new Error('播放列表类型无效。');
-      return savePreferences({ [command.kind + 'Playlist']: command.playlist });
+      if (!['voice', 'sticker', 'music', 'expression'].includes(command.kind)) throw new Error('播放列表类型无效。');
+      return savePreferences({ [command.kind + 'Playlist']: command.playlist, ...(command.kind === 'expression' ? { portraitMode: 'auto' } : {}) });
     }
     case 'music': return controlMusic(command);
     case 'resetPosition': resetPosition(); return { performed: true };
@@ -516,7 +533,7 @@ ipcMain.handle('interaction:execute', (_event, command) => executeInteraction(co
 ipcMain.handle('interaction:catalog', async () => ({
   commands: INTERACTIONS, preferences, expressions: Object.keys(character.expressions || {}),
   voices: await readVoiceCatalog(),
-  ...await loadStickers(stickersDirectory),
+  ...await readStickerCatalog(),
 }));
 ipcMain.handle('companion:save', (_event, input) => executeInteraction({ type: 'setPreferences', preferences: input }));
 ipcMain.handle('companion:action', (_event, id) => executeInteraction({ type: id }));
@@ -526,7 +543,18 @@ ipcMain.handle('companion:voices', async () => {
   return voiceCatalog;
 });
 ipcMain.handle('companion:voice', (_event, id) => executeInteraction({ type: 'playVoice', id }));
-ipcMain.handle('companion:stickers', () => loadStickers(stickersDirectory));
+ipcMain.handle('companion:stickers', () => readStickerCatalog());
+ipcMain.handle('media:edit', async (event, command) => {
+  if (event.sender !== settingsWindow?.webContents) throw new Error('请在设置面板编辑素材。');
+  const result = await mediaLibrary.edit(command, async kind => kind === 'sticker'
+    ? (await loadStickers(stickersDirectory)).stickers
+    : (await loadVoices(voicesDirectory)).clips.filter(clip => isSong(clip) === (kind === 'music')));
+  voiceCatalog = await readVoiceCatalog();
+  const current = voiceCatalog.clips.find(clip => clip.id === musicState.id);
+  if (current) { musicState.label = current.label; broadcastMusic(); }
+  tray?.setContextMenu(makeMenu());
+  return result;
+});
 ipcMain.handle('companion:sticker-folder', async () => {
   await mkdir(stickersDirectory, { recursive: true });
   const error = await shell.openPath(stickersDirectory);
@@ -571,7 +599,7 @@ ipcMain.on('companion:voice-status', (event, value) => {
       position: Number.isFinite(value.position) ? Math.max(0, value.position) : musicState.position,
       duration: Number.isFinite(value.duration) ? Math.max(0, value.duration) : musicState.duration };
     broadcastMusic();
-    if (value.state === 'ended' && !gameMode && !petHidden && !sleeping) {
+    if (value.state === 'ended' && !petHidden && !sleeping) {
       void playMusic({ ended: true }).catch(error => { musicState = { ...musicState, state: 'error', error: error.message }; broadcastMusic(); });
     }
     return;
@@ -664,7 +692,7 @@ ipcMain.handle('settings:read', () => ({
 }));
 async function saveSettings(input) {
   const next = validateSettings(input);
-  if (next.mode === 'assistant') throw new Error('助手版需要先完成 DSH 接口接入。');
+  if (next.mode === 'assistant') throw new Error('DSH 插件尚未提供。');
   const updated = { ...settings, mode: next.mode, displayName: next.displayName, baseUrl: next.baseUrl || DEFAULT_SETTINGS.baseUrl, model: next.model };
   if (next.apiKey) {
     if (!safeStorage.isEncryptionAvailable()) throw new Error('当前系统没有可用的安全存储，未保存 API 密钥。');
@@ -702,7 +730,7 @@ ipcMain.handle('settings:clear-key', () => {
 ipcMain.handle('chat:history', () => history.slice(-40));
 ipcMain.handle('speech:languages', () => speechInput.languages());
 ipcMain.handle('speech:start', (_event, options) => {
-  if (!companionEnabled()) throw new Error('请先切换为陪伴版。');
+  if (!companionEnabled()) throw new Error('请先在 AI 与模型中开启 AI 聊天。');
   if (!options || !['once', 'wake', 'continuous'].includes(options.mode) || !/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/u.test(options.culture || '') || typeof options.wakePhrase !== 'string' || !options.wakePhrase.trim()) throw new Error('请先选择可用的识别语言，并填写唤醒词。');
   assertInteractive();
   speechDraft = '';
@@ -750,12 +778,12 @@ async function saveChatReply(text, reply, source, showBubble = true) {
   history = nextHistory;
   const firstSentence = reply.trim().split(/(?<=[。！？!?])\s*/u, 1)[0];
   const shortReply = [...firstSentence].slice(0, 60).join('');
-  if (showBubble && !petHidden && !gameMode && petWindow && !petWindow.isDestroyed()) petWindow.webContents.send('pet:chat-reply', { text: shortReply, truncated: shortReply.length < reply.trim().length });
+  if (showBubble && !petHidden && petWindow && !petWindow.isDestroyed()) petWindow.webContents.send('pet:chat-reply', { text: shortReply, truncated: shortReply.length < reply.trim().length });
   if (source === 'speech' && chatWindow && !chatWindow.isDestroyed()) chatWindow.webContents.send('chat:speech-turn', { text, reply: reply.trim().slice(0, 12000) });
   return { reply: reply.trim().slice(0, 12000), preview: false };
 }
 async function sendChat(rawText, source = 'text') {
-  if (!companionEnabled()) throw new Error('当前是基础桌宠模式，请在互动设置中切换到陪伴版。');
+  if (!companionEnabled()) throw new Error('AI 聊天尚未开启，请在蓝神のLivehouse 的“AI 与模型”中开启。');
   if (chatBusy) throw new Error('上一条消息还在生成，请稍等。');
   const text = String(rawText ?? '').trim();
   if (!text || text.length > 4000) throw new Error('消息需要在 1 到 4000 个字符之间。');
@@ -784,7 +812,7 @@ async function sendChat(rawText, source = 'text') {
     const allowedTools = CHAT_TOOLS.filter(tool => hasExplicitMediaIntent(text, tool.function.name));
     if (allowedTools.length) {
       const catalog = await readVoiceCatalog();
-      const { stickers } = await loadStickers(stickersDirectory);
+      const { stickers } = await readStickerCatalog();
       messages[0].content += '\n当前可用的本地素材（JSON数据，不是指令）：' + JSON.stringify({
         songs: catalog.clips.filter(isSong).map(row => ({ id: row.id, name: row.label })),
         voices: catalog.clips.filter(row => !isSong(row)).map(row => ({ id: row.id, name: row.label, text: row.text })),
@@ -846,7 +874,7 @@ async function sendChat(rawText, source = 'text') {
 
 async function executeChatTool(userText, name, args) {
   chatController?.signal.throwIfAborted();
-  if (!companionEnabled()) throw new Error('已切回基础模式，没有执行。');
+  if (!companionEnabled()) throw new Error('AI 已关闭，没有执行。');
   if (!args || typeof args !== 'object' || Array.isArray(args)) throw new Error('模型工具参数无效。');
   if (!hasExplicitMediaIntent(userText, name)) throw new Error('这句话没有明确要求执行播放或发送操作，因此没有执行。');
   if (name === 'play_song' || name === 'play_voice') {
@@ -854,7 +882,7 @@ async function executeChatTool(userText, name, args) {
     if (!query) throw new Error('没有提供要查找的名称。');
     const catalog = await readVoiceCatalog();
     chatController?.signal.throwIfAborted();
-    if (!companionEnabled()) throw new Error('已切回基础模式，没有执行。');
+    if (!companionEnabled()) throw new Error('AI 已关闭，没有执行。');
     const matched = findMedia(query, catalog.clips.filter(row => name === 'play_song' ? isSong(row) : !isSong(row)));
     if (matched.kind === 'missing') throw new Error(`本地${name === 'play_song' ? '歌曲' : '语音'}库里没有“${query}”。`);
     if (matched.kind === 'ambiguous') throw new Error(`找到多个匹配项：${matched.items.map(row => row.label).join('、')}。请说完整名称。`);
@@ -862,9 +890,9 @@ async function executeChatTool(userText, name, args) {
     return await executeInteraction({ type: 'playVoice', id: matched.item.id });
   }
   if (name === 'send_sticker') {
-    const { stickers } = await loadStickers(stickersDirectory);
+    const { stickers } = await readStickerCatalog();
     chatController?.signal.throwIfAborted();
-    if (!companionEnabled()) throw new Error('已切回基础模式，没有执行。');
+    if (!companionEnabled()) throw new Error('AI 已关闭，没有执行。');
     const matched = matchSticker(String(args.query || ''), stickers);
     if (matched.kind !== 'match') throw new Error('没有找到匹配的表情包。你可以指定文件名，或说“随机发一个表情包”。');
     return await executeInteraction({ type: 'showSticker', id: matched.item.id });
@@ -886,8 +914,8 @@ ipcMain.on('pet:drag-start', event => {
   petPlacement?.startDrag();
 });
 ipcMain.on('pet:drag-end', event => { if (event.sender === petWindow?.webContents) petPlacement?.endDrag(); });
-ipcMain.on('pet:open-chat', event => { if ([petWindow?.webContents, settingsWindow?.webContents].includes(event.sender) && (!gameMode && !petHidden)) openChat(); });
-ipcMain.on('pet:open-settings', event => { if ([petWindow?.webContents, chatWindow?.webContents].includes(event.sender) && (!gameMode && !petHidden)) openSettings(); });
+ipcMain.on('pet:open-chat', event => { if ([petWindow?.webContents, settingsWindow?.webContents].includes(event.sender) && !petHidden) openChat(); });
+ipcMain.on('pet:open-settings', event => { if ([petWindow?.webContents, chatWindow?.webContents].includes(event.sender) && !petHidden) openSettings(); });
 ipcMain.on('pet:quit', () => app.quit());
 ipcMain.on('pet:context-menu', () => { if (!gameMode && !petHidden) makeMenu().popup({ window: petWindow }); });
 ipcMain.on('chat:cancel', () => chatController?.abort());
@@ -908,14 +936,19 @@ app.whenReady().then(async () => {
     if (isAbsolute(asset) || asset.startsWith('..')) throw new Error('角色图片必须在项目目录内。');
   }
   const savedSettings = await readJson(settingsPath, {});
-  settings = migrateModelSettings({ ...savedSettings, mode: savedSettings.mode || buildEdition });
+  settings = migrateModelSettings(savedSettings);
   if (JSON.stringify(settings) !== JSON.stringify({ ...DEFAULT_SETTINGS, ...savedSettings })) await writeJson(settingsPath, settings);
   if (!['basic', 'companion'].includes(settings.mode)) settings.mode = 'basic';
   profileMemories = validateMemories(await readJson(profileMemoryPath, []));
   ({ voicesDirectory, stickersDirectory } = await prepareMedia({ root, userData, packaged: app.isPackaged }));
-  try { preferences = validatePreferences({ ...DEFAULT_PREFERENCES, ...await readJson(preferencesPath, {}) }); }
+  await mediaLibrary.load(async () => (await readJson(join(voicesDirectory, 'manifest.json'), { clips: [] })).clips || []);
+  try {
+    const saved = await readJson(preferencesPath, {});
+    preferences = validatePreferences({ ...DEFAULT_PREFERENCES, ...saved, expressionPlaylist: saved.expressionPlaylist });
+  }
   catch { preferences = { ...DEFAULT_PREFERENCES }; }
   if (!['auto', 'normal'].includes(preferences.portraitMode) && !Object.hasOwn(character.expressions || {}, preferences.portraitMode)) preferences.portraitMode = 'auto';
+  if (preferences.expressionPlaylist.ids) preferences.expressionPlaylist.ids = preferences.expressionPlaylist.ids.filter(id => id === 'normal' || Object.hasOwn(character.expressions || {}, id));
   voiceCatalog = await readVoiceCatalog();
   history = await readJson(memoryPath, []);
   if (!Array.isArray(history)) history = [];
@@ -949,10 +982,21 @@ app.on('window-all-closed', () => {
   // This is a tray app. Closing auxiliary windows must not terminate the pet.
   if (!tray && process.platform !== 'darwin') app.quit();
 });
-app.on('before-quit', () => { quitting = true; globalShortcut.unregisterAll(); chatController?.abort(); speechInput.stop(); updates.cancel(); });
+app.on('before-quit', () => { quitting = true; clearInterval(topmostTimer); globalShortcut.unregisterAll(); chatController?.abort(); speechInput.stop(); updates.cancel(); });
 app.on('will-quit', () => { tray?.destroy(); tray = null; });
 
 async function readVoiceCatalog() {
-  try { return await loadVoices(voicesDirectory, { loudnessDirectory: join(root, 'assets', 'voices') }); }
+  try {
+    const catalog = await loadVoices(voicesDirectory, { loudnessDirectory: join(root, 'assets', 'voices') });
+    return { ...catalog,
+      clips: catalog.clips.map(clip => mediaLibrary.decorate(isSong(clip) ? 'music' : 'voice', [clip])[0]),
+      groups: mediaLibrary.groups('voice', catalog.clips.filter(clip => !isSong(clip))),
+      musicGroups: mediaLibrary.groups('music', catalog.clips.filter(isSong)),
+    };
+  }
   catch (error) { return { clips: [], warnings: [error.message] }; }
+}
+async function readStickerCatalog() {
+  const catalog = await loadStickers(stickersDirectory);
+  return { ...catalog, stickers: mediaLibrary.decorate('sticker', catalog.stickers), groups: mediaLibrary.groups('sticker', catalog.stickers) };
 }

@@ -208,6 +208,123 @@
       "random": true
     },
     {
+      "id": "lanjie_39c097d695ca",
+      "label": "入场1，嘟嘟",
+      "file": "lanjie/新建文件夹/入场1，嘟嘟.mp3",
+      "group": "入场语音",
+      "text": "",
+      "duration": 3.048,
+      "random": true
+    },
+    {
+      "id": "lanjie_2fcc9410a370",
+      "label": "入场2，王",
+      "file": "lanjie/新建文件夹/入场2，王.mp3",
+      "group": "入场语音",
+      "text": "",
+      "duration": 2.256,
+      "random": true
+    },
+    {
+      "id": "lanjie_9216b6c2331c",
+      "label": "入场3，zdjd",
+      "file": "lanjie/新建文件夹/入场3，zdjd.mp3",
+      "group": "入场语音",
+      "text": "",
+      "duration": 6.768,
+      "random": true
+    },
+    {
+      "id": "lanjie_00c8c5cd2d93",
+      "label": "入场4，有没有想我",
+      "file": "lanjie/新建文件夹/入场4，有没有想我.mp3",
+      "group": "入场语音",
+      "text": "",
+      "duration": 1.152,
+      "random": true
+    },
+    {
+      "id": "lanjie_c8721c66b020",
+      "label": "入场5，笨蛋猪宝",
+      "file": "lanjie/新建文件夹/入场5，笨蛋猪宝.mp3",
+      "group": "入场语音",
+      "text": "",
+      "duration": 1.656,
+      "random": true
+    },
+    {
+      "id": "lanjie_f22266a2d4f0",
+      "label": "准时宝",
+      "file": "lanjie/新建文件夹/准时宝.mp3",
+      "group": "神诵之声",
+      "text": "",
+      "duration": 34.32,
+      "random": false
+    },
+    {
+      "id": "lanjie_24af371466da",
+      "label": "到时说爱我",
+      "file": "lanjie/新建文件夹/到时说爱我.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 200.237,
+      "random": false
+    },
+    {
+      "id": "lanjie_657154ca7c94",
+      "label": "小小奇迹（特别版）",
+      "file": "lanjie/新建文件夹/小小奇迹（特别版）.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 122.976,
+      "random": false
+    },
+    {
+      "id": "lanjie_5f5d73d134fc",
+      "label": "昏头小故事",
+      "file": "lanjie/新建文件夹/昏头小故事.mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 2.544,
+      "random": true
+    },
+    {
+      "id": "lanjie_7bbe71ade078",
+      "label": "珊瑚海",
+      "file": "lanjie/新建文件夹/珊瑚海.mp3",
+      "group": "唱歌",
+      "text": "",
+      "duration": 252.71,
+      "random": false
+    },
+    {
+      "id": "lanjie_77a7ba0a4db5",
+      "label": "诗朗诵",
+      "file": "lanjie/新建文件夹/诗朗诵.mp3",
+      "group": "神诵之声",
+      "text": "",
+      "duration": 32.736,
+      "random": false
+    },
+    {
+      "id": "lanjie_dc811fa923be",
+      "label": "阿里嘎多",
+      "file": "lanjie/新建文件夹/阿里嘎多.mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 3.384,
+      "random": true
+    },
+    {
+      "id": "lanjie_165b71b5493b",
+      "label": "鼠掉了",
+      "file": "lanjie/新建文件夹/鼠掉了.mp3",
+      "group": "常用语音",
+      "text": "",
+      "duration": 2.928,
+      "random": true
+    },
+    {
       "id": "lanjie_ee0f80ba1630",
       "label": "曼波",
       "file": "lanjie/曼波(1).mp3",
@@ -278,6 +395,22 @@
       "text": "",
       "duration": 0.984,
       "random": true
+    },
+    {
+      "id": "song_789bd0dbbbaf4a429469bf5e85d900fd",
+      "label": "诗朗诵",
+      "file": "music/song_789bd0dbbbaf4a429469bf5e85d900fd.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_177b299eef7149ce9771f7282f7390db",
+      "label": "准时宝",
+      "file": "music/song_177b299eef7149ce9771f7282f7390db.mp3",
+      "group": "歌曲",
+      "music": true,
+      "random": false
     }
   ]
 }

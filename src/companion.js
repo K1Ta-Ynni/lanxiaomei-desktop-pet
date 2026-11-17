@@ -34,7 +34,7 @@ export const INTERACTIONS = Object.freeze([
   { id: 'resetPosition', label: '回到主屏幕' },
   { id: 'moveTo', label: '移动桌宠到屏幕位置', requiresPosition: true },
 ]);
-export const DEFAULT_PREFERENCES = Object.freeze({ scale: 1, volume: 0.65, muted: false, clickVoice: true, clickSticker: true, idleActions: true, lowResourceMode: false, animateIdle: true, autoBlink: true, talkAnimation: true, preloadExpressions: true, portraitMode: 'auto', voicePlaylist: DEFAULT_PLAYLIST, stickerPlaylist: DEFAULT_PLAYLIST, musicPlaylist: { mode: 'sequence', ids: null } });
+export const DEFAULT_PREFERENCES = Object.freeze({ scale: 1, volume: 0.65, muted: false, clickVoice: true, clickSticker: true, idleActions: true, lowResourceMode: false, animateIdle: true, autoBlink: true, talkAnimation: true, preloadExpressions: true, portraitMode: 'auto', expressionPlaylist: DEFAULT_PLAYLIST, voicePlaylist: DEFAULT_PLAYLIST, stickerPlaylist: DEFAULT_PLAYLIST, musicPlaylist: { mode: 'sequence', ids: null } });
 
 export function validatePreferences(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('互动设置格式不正确。');
@@ -52,6 +52,7 @@ export function validatePreferences(value) {
   }
   if (typeof clickSticker !== 'boolean' || typeof portraitMode !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/u.test(portraitMode)) throw new Error('表情互动设置不正确。');
   return { scale: value.scale, volume: value.volume, muted: value.muted, clickVoice: value.clickVoice, clickSticker, idleActions: value.idleActions, ...performance, portraitMode,
+    expressionPlaylist: validatePlaylist(value.expressionPlaylist ?? (portraitMode === 'auto' ? DEFAULT_PLAYLIST : { mode: 'repeat', ids: [portraitMode] })),
     voicePlaylist: validatePlaylist(value.voicePlaylist), stickerPlaylist: validatePlaylist(value.stickerPlaylist),
     musicPlaylist: validatePlaylist(value.musicPlaylist ?? DEFAULT_PREFERENCES.musicPlaylist) };
 }

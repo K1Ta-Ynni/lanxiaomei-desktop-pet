@@ -17,13 +17,17 @@
 
 上述去背景说明适用于原始立绘；眨眼与表情帧包含 AI 生成的局部修改。源图放在 `artifacts/原图/`，保留原始文件。另有微笑、困倦、嘟嘴、说话、大笑、委屈、惊讶、疑惑和无语透明表情帧；除疑惑使用完整生成立绘外，其余主要提取脸部，惊讶与疑惑额外保留对应的头顶感叹号/问号。运行 `python scripts/prepare-expressions.py` 可重新合成，需要 Pillow；运行桌宠不需要 Python。对比图输出到被 Git 忽略的 `artifacts/表情对比.png`。
 
+## 音乐状态帧
+
+`assets/portraits/music-1.png`、`music-2.png`、`music-3.png` 为 626 × 1024 的透明音乐表情，来源于维护者提供的 `artifacts/原图/音乐1.png` 至 `音乐3.png`。以第一张统一身体、轮廓和音符，另外两张合入面部表情；两侧音符沿用同一形状与大小，逐帧轻微调整位置。原始素材不变，处理脚本为 `python scripts/prepare-music-frames.py`（需要 Pillow），会额外输出静态对比与 GIF 预览到 `artifacts/`。循环顺序与时长记录在 `character/character.json` 的 `musicAnimation`，不加入普通待机表情列表。
+
 ## 辅助图标
 
 `assets/icon.ico` 从蓝小妹头像生成多尺寸 Windows 程序图标，用于打包 EXE；窗口与托盘也使用头像。运行 `python scripts/prepare-app-icon.py` 可重新生成图标，需要 Pillow。`assets/mascot.svg` 与 `assets/icon.png` 是本项目原创备用示例资源，适用代码的 MIT 许可证。
 
 ## 语音
 
-`assets/voices/manifest.json` 索引项目维护者提供的 31 段蓝姐录音，按“常用语音、唐哭、唐笑、唱歌”分组。来源为维护者整理的本地语音包；录音许可独立于代码许可，公开分发范围以维护者取得的授权为准。原文件保存在 `artifacts/蓝姐语音包/`，导入脚本不改写源录音。
+`assets/voices/manifest.json` 索引项目维护者提供的 44 段蓝姐录音，按“常用语音、入场语音、唐哭、唐笑、唱歌”分组，其中歌曲 10 首。来源为维护者整理的本地语音包；录音许可独立于代码许可，公开分发范围以维护者取得的授权为准。原文件保存在 `artifacts/蓝姐语音包/`，导入脚本不改写源录音。
 
 `assets/voices/loudness.json` 记录 FFmpeg 测得的响度、真峰值、文件哈希及播放增益。目标为 -18 LUFS，真峰值余量为 -1.5 dBTP。为避免削波，尖峰较大的录音会限制增益，最终响度可能略低于目标；这是自动增益补偿，不等同于动态压缩。重跑 `python scripts/measure-voice-loudness.py` 可重新测量，不修改音频字节。
 

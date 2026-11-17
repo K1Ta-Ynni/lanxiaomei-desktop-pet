@@ -12,7 +12,7 @@
 | playVoice | id：语音目录中的 ID | 播放录音，替换上一条 |
 | stopVoice | 无 | 停止录音 |
 | nextVoice / nextSticker | 无 | 按对应列表的随机、顺序或单项模式播放下一项；列表为空返回 `{ performed: false, empty: true }` |
-| setPlaylist | kind：`voice`、`sticker` 或 `music`；playlist：`{ mode, ids }` | 保存列表；mode 为 `random`、`sequence` 或 `repeat`；ids 为所选 ID 数组，空数组表示清空，null 使用默认选择（语音排除歌曲、表情全选、音乐选全部歌曲） |
+| setPlaylist | kind：`voice`、`sticker`、`music` 或 `expression`；playlist：`{ mode, ids }` | 保存列表；mode 为 `random`、`sequence` 或 `repeat`；ids 为所选 ID 数组，空数组表示清空，null 使用默认选择；expression 为常驻立绘表情列表，默认使用 idleExpressions，清空显示原始表情，repeat 常驻列表第一张 |
 | music | action：`play`、`pause`、`resume`、`seek`、`previous`、`next`、`stop`；play 可选 id，seek 必须带 position（秒） | 歌曲播放器共用入口；播放后自动接续；单曲循环只作用于自然播完，手动切歌仍换曲。仅选择本地歌曲清单中的音频 |
 | showSticker | id：表情包目录中的文件名，含后缀 | 桌面气泡显示图片 6.5 秒 |
 | randomSticker | 无 | 从已选表情列表随机显示一张，多个图片时避免连续重复；兼容旧调用 |
@@ -42,7 +42,7 @@ await window.petApp.executeInteraction({
 
 `interactions().expressions` 返回已配置的角色表情 ID。它们属于角色立绘帧，区别于独立展示的表情包；只能调用角色配置中的 ID。游戏、隐藏或休息状态不接受表情调用。表情 ID 包括 blink、happy、shy、smile、sleepy、pout、talk、laugh、teary、surprised、annoyed。
 
-互动设置还包括 `clickSticker`（点按角色是否随机冒表情包）与 `portraitMode`（`auto` 待机随机、`normal` 原表情或已配置的任意表情 ID）。通过现有 `setPreferences` 可设置常驻表情。`showExpression` 展示约 2 秒后恢复常驻表情，语音播放有简单张嘴动画。所有表情包均通过同一入口显示，GIF 直接使用原文件，不转成静态图。
+互动设置还包括 `clickSticker`（点按角色是否随机冒表情包）与 `expressionPlaylist`（常驻表情列表）。通过 `setPlaylist` 的 `expression` 类型保存列表，约每 30～60 秒轮换；省资源模式暂停轮换。旧 `portraitMode` 调用继续兼容：auto 恢复默认随机列表，normal 或表情 ID 转为单张常驻。`showExpression`（含 normal）展示约 2 秒后恢复常驻表情，语音播放有简单张嘴动画。所有表情包均通过同一入口显示，GIF 直接使用原文件，不转成静态图。
 
 版本更新属于应用管理功能，使用独立接口 `petApp.checkUpdates(includePrereleases)`、`petApp.downloadUpdate()`、`petApp.installUpdate()`，由用户在互动面板主动操作，未纳入角色互动命令列表。
 

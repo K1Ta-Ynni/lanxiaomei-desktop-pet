@@ -12,7 +12,7 @@ export function singerMode() { return ['loading', 'playing', 'paused'].includes(
 function hover(event) {
   if (event) pointer = { x: event.clientX, y: event.clientY };
   const target = pointer && document.elementFromPoint(pointer.x, pointer.y);
-  const active = singerMode() && !document.body.classList.contains('game-mode');
+  const active = singerMode();
   const over = active && target?.closest('#pet, .music-widget') && document.querySelector('#sticker-picker').hidden;
   if (over) {
     clearTimeout(hideTimer);

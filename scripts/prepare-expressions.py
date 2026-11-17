@@ -77,7 +77,7 @@ def add_icon(frame, source_name, box, outline, dot_box, position):
     return frame
 
 
-def make_full_frame(source_name):
+def make_full_frame(source_name, *, halo_hole=(.24, .065)):
     source = Image.open(SOURCES / source_name).convert("RGB")
     width, height = source.size
     # Remove only near-white regions connected to the outside. The white parts
@@ -99,9 +99,11 @@ def make_full_frame(source_name):
             if background.getpixel((x, y)) == 255:
                 ImageDraw.floodfill(background, (x, y), 128)
     # The halo encloses a separate piece of the same white page.
-    halo_hole = (round(width * .24), round(height * .065))
-    if background.getpixel(halo_hole) == 255:
-        ImageDraw.floodfill(background, halo_hole, 128)
+    # This seed must be inside the hole, not the pale surface of the ring.
+    # Different generated drawings can place the halo at different positions.
+    halo_seed = (round(width * halo_hole[0]), round(height * halo_hole[1]))
+    if background.getpixel(halo_seed) == 255:
+        ImageDraw.floodfill(background, halo_seed, 128)
     alpha = background.point(lambda value: 0 if value == 128 else 255).filter(ImageFilter.MinFilter(3))
     # Leave the original source and its watermark untouched; omit the detached
     # source label from the runtime transparent sprite.
@@ -114,35 +116,40 @@ def make_full_frame(source_name):
     frame.alpha_composite(resized, ((BASE.width - resized.width) // 2, BASE.height - resized.height))
     return frame
 
-frames = {"portrait-desktop.png": BASE}
-for output_name, (source_name, regions) in EXPRESSIONS.items():
-    frame = make_frame(source_name, regions)
-    if output_name in ICONS:
-        frame = add_icon(frame, *ICONS[output_name])
-    frame.save(PORTRAITS / output_name, optimize=True)
-    if output_name not in ICONS:
-        assert frame.getchannel("A").tobytes() == BASE.getchannel("A").tobytes()
-    assert ImageChops.difference(BASE.convert("RGB"), frame.convert("RGB")).crop((0, 380, 626, 1024)).getbbox() is None
-    frames[output_name] = frame
+def main():
+    frames = {"portrait-desktop.png": BASE}
+    for output_name, (source_name, regions) in EXPRESSIONS.items():
+        frame = make_frame(source_name, regions)
+        if output_name in ICONS:
+            frame = add_icon(frame, *ICONS[output_name])
+        frame.save(PORTRAITS / output_name, optimize=True)
+        if output_name not in ICONS:
+            assert frame.getchannel("A").tobytes() == BASE.getchannel("A").tobytes()
+        assert ImageChops.difference(BASE.convert("RGB"), frame.convert("RGB")).crop((0, 380, 626, 1024)).getbbox() is None
+        frames[output_name] = frame
 
-for output_name, source_name in FULL_FRAMES.items():
-    frame = make_full_frame(source_name)
-    frame.save(PORTRAITS / output_name, optimize=True)
-    frames[output_name] = frame
+    for output_name, source_name in FULL_FRAMES.items():
+        frame = make_full_frame(source_name)
+        frame.save(PORTRAITS / output_name, optimize=True)
+        frames[output_name] = frame
 
-artifacts = ROOT / "artifacts"
-artifacts.mkdir(exist_ok=True)
-tile_width, tile_height = 200, 350
-columns = 6
-comparison = Image.new("RGB", (tile_width * columns, tile_height * ((len(frames) + columns - 1) // columns)), "#d9e4e7")
-for index, frame in enumerate(frames.values()):
-    layer = frame.resize((tile_width, 327), Image.Resampling.LANCZOS)
-    background = Image.new("RGBA", layer.size, "#d9e4e7")
-    background.alpha_composite(layer)
-    x, y = index % columns * tile_width, index // columns * tile_height
-    comparison.paste(background.convert("RGB"), (x, y))
-    ImageDraw.Draw(comparison).text((x + 4, y + 329), list(frames)[index].removeprefix("portrait-"), fill="#193b46")
-comparison.save(artifacts / "表情对比.png")
+    artifacts = ROOT / "artifacts"
+    artifacts.mkdir(exist_ok=True)
+    tile_width, tile_height = 200, 350
+    columns = 6
+    comparison = Image.new("RGB", (tile_width * columns, tile_height * ((len(frames) + columns - 1) // columns)), "#d9e4e7")
+    for index, frame in enumerate(frames.values()):
+        layer = frame.resize((tile_width, 327), Image.Resampling.LANCZOS)
+        background = Image.new("RGBA", layer.size, "#d9e4e7")
+        background.alpha_composite(layer)
+        x, y = index % columns * tile_width, index // columns * tile_height
+        comparison.paste(background.convert("RGB"), (x, y))
+        ImageDraw.Draw(comparison).text((x + 4, y + 329), list(frames)[index].removeprefix("portrait-"), fill="#193b46")
+    comparison.save(artifacts / "表情对比.png")
 
-print(f"Prepared {len(EXPRESSIONS) + len(FULL_FRAMES)} expression frames in assets/portraits/.")
-print("Comparison: artifacts/表情对比.png")
+    print(f"Prepared {len(EXPRESSIONS) + len(FULL_FRAMES)} expression frames in assets/portraits/.")
+    print("Comparison: artifacts/表情对比.png")
+
+
+if __name__ == "__main__":
+    main()

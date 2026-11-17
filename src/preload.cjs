@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('petApp', {
   interactions: () => invoke('interaction:catalog'),
   executeInteraction: (command) => invoke('interaction:execute', command),
   stickers: () => invoke('companion:stickers'),
+  editMedia: (command) => invoke('media:edit', command),
   importStickers: () => invoke('companion:sticker-import'),
   openStickerFolder: () => invoke('companion:sticker-folder'),
   showSticker: (id) => invoke('interaction:execute', { type: 'showSticker', id }),

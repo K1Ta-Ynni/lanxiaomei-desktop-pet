@@ -44,13 +44,13 @@ async function load() {
   document.querySelector('#name').textContent = info.name;
   document.querySelector('.identity img').src = '../' + info.avatar;
   document.title = info.name + ' | 文字聊天';
-  document.querySelector('#chat-mode').textContent = config.mode === 'companion' ? '陪伴版 · 文字聊天' : '基础桌宠模式';
+  document.querySelector('#chat-mode').textContent = config.mode === 'companion' ? 'AI 文字聊天' : 'AI 已关闭';
   setMode(config.mode);
   for (const row of history) bubble(row.role, row.content);
   if (!history.length) {
     const welcome = document.createElement('p');
     welcome.className = 'chat-welcome';
-    welcome.textContent = config.mode === 'companion' ? '今天想聊点什么？' : '切换到陪伴版后，就可以在这里聊天。';
+    welcome.textContent = config.mode === 'companion' ? '今天想聊点什么？' : '在“AI 与模型”中开启 AI 后，就可以在这里聊天。';
     messages.append(welcome);
   }
   await renderMemories();
@@ -62,13 +62,13 @@ async function load() {
 function setMode(mode) {
   currentMode = mode;
   const active = mode === 'companion';
-  document.querySelector('#chat-mode').textContent = active ? '陪伴版 · 文字聊天' : '基础桌宠模式';
+  document.querySelector('#chat-mode').textContent = active ? 'AI 文字聊天' : 'AI 已关闭';
   input.disabled = !active;
   send.disabled = !active || busy;
   document.querySelector('#speech-once').disabled = !active || !languages.length;
   document.querySelector('#speech-wake').disabled = !active || !languages.length;
   document.querySelector('#speech-continuous').disabled = !active || !languages.length;
-  if (!active && !status.classList.contains('error')) status.textContent = '当前为基础模式。到设置中切换为陪伴版后即可聊天。';
+  if (!active && !status.classList.contains('error')) status.textContent = 'AI 尚未开启。到“AI 与模型”中开启后即可聊天。';
   else if (active && !status.classList.contains('error')) status.textContent = '';
 }
 

@@ -233,6 +233,136 @@
       "peakLimited": true
     },
     {
+      "id": "lanjie_39c097d695ca",
+      "file": "lanjie/新建文件夹/入场1，嘟嘟.mp3",
+      "sha256": "f8d5962c86ffdc62697d417fd50668bca5e92ff1e776fcd64bad09a607a25f15",
+      "integratedLufs": -34.34,
+      "truePeakDb": -18.32,
+      "gainDb": 16.34,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_2fcc9410a370",
+      "file": "lanjie/新建文件夹/入场2，王.mp3",
+      "sha256": "d7cae2ad009129ac7a6b05f9bf5a86dbac749990bcd5e219cb62dcfa85e9e092",
+      "integratedLufs": -36.38,
+      "truePeakDb": -25.2,
+      "gainDb": 18.38,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_9216b6c2331c",
+      "file": "lanjie/新建文件夹/入场3，zdjd.mp3",
+      "sha256": "edd6d5a146ee07eaf49fa9738498917b088e9d9c47c99f2b47f7345a47669b6f",
+      "integratedLufs": -34.09,
+      "truePeakDb": -18.9,
+      "gainDb": 16.09,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_00c8c5cd2d93",
+      "file": "lanjie/新建文件夹/入场4，有没有想我.mp3",
+      "sha256": "c902d7513a931e747fbf6d57fef8bfc07e9148883948fe0681c1ce4ec917f1bc",
+      "integratedLufs": -37.28,
+      "truePeakDb": -27.64,
+      "gainDb": 19.28,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_c8721c66b020",
+      "file": "lanjie/新建文件夹/入场5，笨蛋猪宝.mp3",
+      "sha256": "2e4404be804854a210029f136a62d18bd362823eff64fa0a259b584c26c597d7",
+      "integratedLufs": -34.76,
+      "truePeakDb": -25.46,
+      "gainDb": 16.76,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_f22266a2d4f0",
+      "file": "lanjie/新建文件夹/准时宝.mp3",
+      "sha256": "c7c6976a1dda2389a21a88d62e3b954b5e93ff2d27ce9df52b3fb28cf000a025",
+      "integratedLufs": -31.58,
+      "truePeakDb": -19.44,
+      "gainDb": 13.58,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_24af371466da",
+      "file": "lanjie/新建文件夹/到时说爱我.mp3",
+      "sha256": "6a1127b586230f43097f116f625c9962dd9a1424413eca4424e8e11cf0405e02",
+      "integratedLufs": -23.26,
+      "truePeakDb": -11.02,
+      "gainDb": 5.26,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_657154ca7c94",
+      "file": "lanjie/新建文件夹/小小奇迹（特别版）.mp3",
+      "sha256": "8061d5c40ade264dd5eae964061c5dc68bab8453df936fe299dd0f0a0ddf43e8",
+      "integratedLufs": -31.41,
+      "truePeakDb": -17.84,
+      "gainDb": 13.41,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_5f5d73d134fc",
+      "file": "lanjie/新建文件夹/昏头小故事.mp3",
+      "sha256": "bc31d8a4b8b8e6595a556d1eb6de1b908462fd8d106980c71483ec6c85627f77",
+      "integratedLufs": -32.34,
+      "truePeakDb": -23.36,
+      "gainDb": 14.34,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_7bbe71ade078",
+      "file": "lanjie/新建文件夹/珊瑚海.mp3",
+      "sha256": "ad71014155c793e209ec997779df958ea2d3ff997b49974c5a2c6094362ed2dd",
+      "integratedLufs": -26.15,
+      "truePeakDb": -14.36,
+      "gainDb": 8.15,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_77a7ba0a4db5",
+      "file": "lanjie/新建文件夹/诗朗诵.mp3",
+      "sha256": "b6a3f425ff6ff310f77092aa8d2ed10c920bcf0fb37bd21d4c44f65aadd0e2fa",
+      "integratedLufs": -32.4,
+      "truePeakDb": -21.19,
+      "gainDb": 14.4,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_dc811fa923be",
+      "file": "lanjie/新建文件夹/阿里嘎多.mp3",
+      "sha256": "f69e28c2524c7ad5f6b9d8a55447e94a5f0003329cbd3af47ab1add17aceaa96",
+      "integratedLufs": -31.61,
+      "truePeakDb": -20.33,
+      "gainDb": 13.61,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "lanjie_165b71b5493b",
+      "file": "lanjie/新建文件夹/鼠掉了.mp3",
+      "sha256": "2a40b013aca18a3b9aa75e152a82fd997992124f2a28bd590c9cdc31e42895b9",
+      "integratedLufs": -32.88,
+      "truePeakDb": -22.72,
+      "gainDb": 14.88,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
       "id": "lanjie_ee0f80ba1630",
       "file": "lanjie/曼波(1).mp3",
       "sha256": "30beb048ade17ae363fd0dacafbe0355199420d47cfb5715e5756cd4312dcdca",
