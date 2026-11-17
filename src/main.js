@@ -108,7 +108,7 @@ function assertInteractive() {
   if (gameMode) throw new Error('游戏模式已开启，请先按 Ctrl+Alt+G 或在面板中关闭。');
   if (petHidden) throw new Error('桌宠已隐藏，请先按 Ctrl+Alt+H 或在面板中显示。');
 }
-function syncDesktopState() {
+function syncDesktopState({ refreshPet = false } = {}) {
   ++mediaSequence;
   petPlacement?.cancelDrag();
   if (gameMode || petHidden) stopMusic();
@@ -118,7 +118,15 @@ function syncDesktopState() {
     petWindow.setFocusable(!gameMode && !petHidden);
     petWindow.setSkipTaskbar(true);
     if (petHidden) petWindow.hide();
-    else petWindow.showInactive();
+    else {
+      // Re-present the native transparent surface after click-through/fullscreen use.
+      // This is a recovery path, not a guarantee to draw over exclusive fullscreen games.
+      if (petWindow.isMinimized()) petWindow.restore();
+      if (refreshPet && petWindow.isVisible()) petWindow.hide();
+      petWindow.showInactive();
+      petWindow.setAlwaysOnTop(true, 'floating');
+      if (refreshPet) petWindow.webContents.invalidate();
+    }
   }
   for (const window of [petWindow, settingsWindow]) {
     if (window && !window.isDestroyed()) window.webContents.send('desktop:state', desktopState());
@@ -127,11 +135,20 @@ function syncDesktopState() {
   tray?.setToolTip(`${currentName()}${gameMode ? ' · 游戏模式' : ''}${petHidden ? ' · 已隐藏' : ''}`);
   return desktopState();
 }
-function setGameMode(value) { gameMode = Boolean(value); return syncDesktopState(); }
-function setPetHidden(value) { petHidden = Boolean(value); return syncDesktopState(); }
+function setGameMode(value) {
+  const wasEnabled = gameMode;
+  gameMode = Boolean(value);
+  return syncDesktopState({ refreshPet: wasEnabled && !gameMode && !petHidden });
+}
+function setPetHidden(value) {
+  const wasHidden = petHidden;
+  petHidden = Boolean(value);
+  return syncDesktopState({ refreshPet: wasHidden && !petHidden && !gameMode });
+}
 function restorePet() {
   if (!petWindow || petWindow.isDestroyed()) createPetWindow();
-  setPetHidden(false);
+  petHidden = false;
+  syncDesktopState({ refreshPet: true });
 }
 function randomVoices() { return playlistItems(voiceCatalog.clips, preferences.voicePlaylist, defaultVoiceSelection); }
 

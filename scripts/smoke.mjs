@@ -137,6 +137,7 @@ try {
   await pet.locator('#open-settings').click();
   await pet.mouse.move(1, 1);
   await pet.waitForFunction(() => !document.body.classList.contains('controls-visible'), { timeout: 5000 });
+  await settings.locator('[data-page=updates]').click();
   await pet.waitForFunction(() => Number(getComputedStyle(document.querySelector('.pet-tools')).opacity) === 0);
   await desktop.evaluate(({ net }) => {
     net.fetch = async () => new Response(JSON.stringify([{ tag_name: 'v0.1.0', name: 'v0.1.0', body: 'Current preview', prerelease: true,
@@ -461,6 +462,24 @@ try {
   assert.equal(await pet.locator('.pet-tools').isVisible(), false);
   assert.equal(await pet.locator('#pet img').evaluate(image => getComputedStyle(image).animationName), 'none');
   assert.equal(await pet.locator('#pet img').getAttribute('src'), '../assets/portraits/portrait-desktop.png', 'game mode cancels blinking');
+  await settings.locator('#game-mode').uncheck();
+  await pet.waitForFunction(() => !document.body.classList.contains('game-mode'));
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true,
+    'leaving game mode keeps the desktop window visible');
+  assert.equal(await desktop.evaluate(() => globalThis.lastPetMouseIgnore), false, 'leaving game mode restores mouse interaction');
+  assert.ok(await pet.locator('#pet img').evaluate(image => image.complete && image.naturalWidth > 0 && getComputedStyle(image).visibility === 'visible'),
+    'leaving game mode restores the portrait renderer');
+  await desktop.evaluate(({ BrowserWindow, Menu }) => {
+    const window = BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html'));
+    window.minimize();
+    Menu.getApplicationMenu();
+  });
+  // The tray's restore callback also handles a live but minimized native window.
+  await settings.locator('#pet-hidden').check();
+  await settings.locator('#pet-hidden').uncheck();
+  assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isMinimized()), false);
+  await settings.locator('#game-mode').check();
+  await pet.waitForFunction(() => document.body.classList.contains('game-mode'));
   await settings.locator('#pet-hidden').check();
   assert.equal((await pet.evaluate(() => window.petApp.desktopState())).gameMode, true);
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), false);
