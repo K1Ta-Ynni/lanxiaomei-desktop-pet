@@ -35,7 +35,11 @@ lanxiaomei-desktop-pet-v2.1.0-companion-win32-x64.zip  # 仅供旧陪伴版更�
 
 两包的代码、素材、功能和默认设置相同，只有兼容标记不同。应用运行时忽略兼容标记并使用统一更新通道。不能仅把同一个 ZIP 改名上传，否则旧安装器会因标记不符而拒绝安装。未来版本仅需主体版包；尚未升级的旧陪伴版仍可先升到 v2.1 再继续升级。
 
-运行 `npm.cmd run package:windows` 自动生成两个过渡 ZIP、各自 `.sha256` 和 `SHA256SUMS.txt`。运行 `npm.cmd run test:package`、`npm.cmd run test:package -- --edition=companion` 验证两个 ZIP 启动，再运行 `npm.cmd run test:upgrade-v2` 使用 Git 标签 v2.0.0 的原始更新器与安装脚本验证两条升级路径。把两个 ZIP 和校验文件上传到同一个 GitHub Release；仅当附件上传完成，旧客户端才能检测到更新。
+v2.1.0 使用 `npm.cmd run package:windows -- --legacy-companion` 生成两个过渡 ZIP、各自 `.sha256` 和 `SHA256SUMS.txt`。这种兼容构建可运行 `npm.cmd run test:package`、`npm.cmd run test:package -- --edition=companion` 验证两个 ZIP 启动，再运行 `npm.cmd run test:upgrade-v2` 使用 Git 标签 v2.0.0 的原始更新器与安装脚本验证两条升级路径。
+
+### v2.1.1 及后续发布
+
+运行 `npm.cmd run package:windows` 仅生成一个主体版 ZIP、对应 `.sha256` 和 `SHA256SUMS.txt`；不再默认生成旧陪伴版兼容包。运行 `npm.cmd run test:package` 和 `npm.cmd run test:update-lifecycle` 检查发行包与完整更新重启流程。将 ZIP 和校验文件放入同一 GitHub Release；附件上传完成后客户端才能检测到更新。尚未升级的旧 v2 陪伴版可以先升级到 v2.1.0，或直接手动解压当前主体版使用。
 
 DSH 计划以后作为独立插件提供，目前不随主体版打包。源码运行仍通过 Git 更新，不自动替换源码。
 

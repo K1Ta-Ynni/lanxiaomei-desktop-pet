@@ -13,10 +13,14 @@ const label = process.argv.find(arg => arg.startsWith('--label='))?.slice('--lab
 if (label && !/^[a-zA-Z0-9][a-zA-Z0-9-]{0,63}$/u.test(label)) throw new Error('Build label must contain only letters, digits and hyphens.');
 const name = `lanxiaomei-desktop-pet-v${pkg.version}${label ? '-' + label : ''}-win32-x64`;
 const legacyName = `lanxiaomei-desktop-pet-v${pkg.version}-companion${label ? '-' + label : ''}-win32-x64`;
+// Only historical v2 update-compatibility builds need a second archive.
+const legacy = process.argv.includes('--legacy-companion');
+const targets = [['basic', name], ...(legacy ? [['companion', legacyName]] : [])];
 const dist = join(root, 'dist');
 await mkdir(dist, { recursive: true });
 const zip = join(dist, `${name}.zip`);
-for (const filename of [zip, join(dist, `${legacyName}.zip`)]) {
+for (const [, targetName] of targets) {
+  const filename = join(dist, `${targetName}.zip`);
   try { await stat(filename); throw new Error(`Refusing to overwrite existing build: ${filename}`); }
   catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
@@ -57,8 +61,11 @@ const instructions = [
   '窗口关闭后收进托盘；退出请使用托盘菜单。',
   'AI 与模型：填入标准 API Key、模型 ID 和 API 地址后，可选开启文字聊天与记忆。',
   'AI 不合成语音回复；仅根据明确指令调用本地录音、歌曲或表情包。DSH 插件尚未提供。',
-  'v2 的两种包均可通过原位更新升级，保留设置、密钥、聊天、记忆、分类、列表和媒体。',
-  '带 -companion 文件名的附件仅用于旧更新器过渡，安装后同为主体版。',
+  '更新会保留设置、密钥、聊天、记忆、分类、列表和用户媒体。',
+  '旧版若出现“更新准备超时”，请从托盘退出后手动解压新版到新目录运行。',
+  '不要删除原用户数据目录；旧安装目录中自行添加的媒体请先备份。',
+  '语音收藏和音乐页支持多选导入，并自动进行本地音量分析；原音频不会被修改。',
+  '旧录音可点击“均衡现有语音/歌曲”，偏好设置可关闭音量均衡。',
   '用户数据：%APPDATA%/lanxiaomei-desktop-pet；自定义媒体位于其中的 media 目录。',
   '立绘原型：B站 UP 蓝世_1967。素材许可见 ASSETS.md。',
   `项目地址：${pkg.homepage}`, '',
@@ -68,7 +75,7 @@ await writeFile(join(output, '使用说明.txt'), '\uFEFF' + instructions.join('
 const quote = value => "'" + value.replaceAll("'", "''") + "'";
 const checksums = [];
 try {
-  for (const [edition, filename] of [['basic', name], ['companion', legacyName]]) {
+  for (const [edition, filename] of targets) {
     // v2 verifies this field strictly. The app ignores it and always uses the unified update channel.
     await writeFile(join(app, 'edition.json'), JSON.stringify({ edition, unified: true }, null, 2) + '\n', 'utf8');
     const archive = join(dist, `${filename}.zip`);

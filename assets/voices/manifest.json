@@ -559,19 +559,19 @@
     {
       "id": "song_3a25c39e01d74514b3fa266b18e49818",
       "label": "嗦面后的小小奇迹1",
-      "file": "music/song_3a25c39e01d74514b3fa266b18e49818.mp3",
-      "group": "歌曲",
-      "music": true,
-      "random": false
-    },
-    {
-      "id": "lanjie_song_4c40242c422180cf5cbf",
-      "label": "嗦面后的小小奇迹1",
       "file": "lanjie/唱歌/嗦面后的小小奇迹1.mp3",
       "group": "唱歌",
       "music": true,
       "random": false,
       "duration": 138.456
+    },
+    {
+      "id": "voice_2256a65f7fa7474da7636e9ed687f7f7",
+      "label": "我再也不敢串了（？",
+      "file": "imported/voice_2256a65f7fa7474da7636e9ed687f7f7.mp3",
+      "group": "我的语音",
+      "music": false,
+      "random": true
     }
   ]
 }

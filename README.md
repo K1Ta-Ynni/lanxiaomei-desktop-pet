@@ -6,7 +6,7 @@
 
 ## 启动
 
-普通使用者：前往 [Releases](https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases) 下载 Windows x64 ZIP，完整解压后双击 `LanXiaomei.exe` 或 `START.cmd`，不需要安装 Node.js。当前发布版本为 v2.1.0，尚未签名。第一次使用可先看[游玩指南](PLAY_GUIDE.md)。
+普通使用者：前往 [Releases](https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases) 下载 Windows x64 ZIP，完整解压后双击 `LanXiaomei.exe` 或 `START.cmd`，不需要安装 Node.js。当前发布版本为 v2.1.1，尚未签名。第一次使用可先看[游玩指南](PLAY_GUIDE.md)。
 
 开发者从源码启动：
 
@@ -65,7 +65,7 @@ npm.cmd ci
 
 ## 添加本地语音
 
-当前附带维护者提供的分组录音，包括入场语音、常用语音、唐哭、唐笑和 10 首歌曲。歌曲默认只手动点播，避免随机播放长音频。打开互动面板的「语音收藏」，点击“添加语音”即可多选 MP3、WAV、OGG；导入会自动分析音量，也可以点击“均衡现有语音”补处理旧文件。无需手写清单。
+当前附带维护者提供的分组录音，包括入场语音、常用语音、唐哭、唐笑和多首歌曲。歌曲默认只手动点播，避免随机播放长音频。打开互动面板的「语音收藏」，点击“添加语音”即可多选 MP3、WAV、OGG；导入会自动分析音量，也可以点击“均衡现有语音”补处理旧文件。无需手写清单。
 
 语音仅在本机播放，不使用 TTS、不上传文件。清单每条需要唯一 ID 和目录内的音频路径，单条最大 30 MiB，最多 200 条。缺失或无效文件会跳过并提示。
 

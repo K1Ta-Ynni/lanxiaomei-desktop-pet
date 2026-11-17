@@ -644,16 +644,6 @@
     },
     {
       "id": "song_3a25c39e01d74514b3fa266b18e49818",
-      "file": "music/song_3a25c39e01d74514b3fa266b18e49818.mp3",
-      "sha256": "e0b249ee494d9c4d89401bbb1a65fb750565a6c56fae27c12b8ab93ff1266dd9",
-      "integratedLufs": -26.57,
-      "truePeakDb": -12.32,
-      "gainDb": 8.57,
-      "estimatedLufs": -18.0,
-      "peakLimited": false
-    },
-    {
-      "id": "lanjie_song_4c40242c422180cf5cbf",
       "file": "lanjie/唱歌/嗦面后的小小奇迹1.mp3",
       "sha256": "e0b249ee494d9c4d89401bbb1a65fb750565a6c56fae27c12b8ab93ff1266dd9",
       "integratedLufs": -26.57,
