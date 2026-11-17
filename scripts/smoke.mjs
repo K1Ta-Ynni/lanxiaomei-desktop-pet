@@ -274,11 +274,25 @@ try {
   assert.equal(await pet.locator('#bubble').isVisible(), false);
   await pet.evaluate(async () => {
     const preferences = await window.petApp.preferences();
-    await window.petApp.savePreferences({ ...preferences, muted: true, clickVoice: false });
+    await window.petApp.savePreferences({ ...preferences, muted: true, clickVoice: true, clickSticker: false });
   });
-  await settings.locator('[data-voice=test]').click();
+  await pet.evaluate(() => window.petApp.executeInteraction({ type: 'greet' }));
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('正在播放'));
   await pet.waitForFunction(() => document.querySelector('#pet img').getAttribute('src').endsWith('/portrait-talk.png'), { timeout: 5000 });
+  assert.ok(['本地播放测试', '第二条测试字幕'].includes(await pet.locator('#greeting').textContent()), 'muted click retains voice subtitles');
+  await pet.locator('#bubble-dismiss').click();
+  await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('已停止'));
+  await pet.evaluate(async () => {
+    const preferences = await window.petApp.preferences();
+    await window.petApp.savePreferences({ ...preferences, muted: false, volume: 0 });
+  });
+  await pet.evaluate(() => window.petApp.executeInteraction({ type: 'greet' }));
+  await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('正在播放'));
+  assert.ok(['本地播放测试', '第二条测试字幕'].includes(await pet.locator('#greeting').textContent()), 'zero-volume click retains voice subtitles');
+  await pet.evaluate(async () => {
+    const preferences = await window.petApp.preferences();
+    await window.petApp.savePreferences({ ...preferences, muted: true, volume: 0.4, clickVoice: false });
+  });
   await settings.locator('[data-action=sleep]').click();
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('已停止'));
   await settings.locator('[data-voice=test]').click();

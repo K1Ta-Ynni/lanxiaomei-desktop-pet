@@ -249,7 +249,8 @@ async function sayHello() {
   lastClickAt = Date.now();
   const expression = clicks >= 5 ? 'annoyed' : clicks >= 3 ? 'pout' : 'shy';
   showExpression(expression, 1500);
-  const wantVoice = preferences.clickVoice && !preferences.muted && preferences.volume > 0;
+  // Muting silences the audio element but keeps the voice interaction, subtitle, and mouth animation.
+  const wantVoice = preferences.clickVoice;
   const wantSticker = preferences.clickSticker && (!wantVoice || Math.random() < 0.25);
   if (wantSticker) {
     try { await window.petApp.executeInteraction({ type: 'randomSticker' }); return; }
