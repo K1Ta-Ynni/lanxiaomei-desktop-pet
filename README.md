@@ -6,7 +6,7 @@
 
 ## 启动
 
-普通使用者：前往 [Releases](https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases) 下载 Windows x64 ZIP，完整解压后双击 `LanXiaomei.exe` 或 `START.cmd`，不需要安装 Node.js。当前为 v1.0.0，尚未签名。
+普通使用者：前往 [Releases](https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases) 下载 Windows x64 ZIP，完整解压后双击 `LanXiaomei.exe` 或 `START.cmd`，不需要安装 Node.js。当前发布版本为 v2.0.0，尚未签名。第一次使用可先看[游玩指南](PLAY_GUIDE.md)。
 
 开发者从源码启动：
 
