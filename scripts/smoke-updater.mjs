@@ -34,7 +34,7 @@ try {
     `Compress-Archive -LiteralPath ${quote(newer)} -DestinationPath ${quote(zip)} -CompressionLevel NoCompression`], { windowsHide: true });
   if (compressed.status !== 0) throw new Error('Could not make updater test ZIP.');
   const sha256 = createHash('sha256').update(await readFile(zip)).digest('hex');
-  await writeFile(join(update, 'job.json'), '\uFEFF' + JSON.stringify({ zip, sha256, version: '0.2.0', installDirectory: install,
+  await writeFile(join(update, 'job.json'), '\uFEFF' + JSON.stringify({ zip, sha256, version: '0.2.0', edition: 'basic', installDirectory: install,
     executable: 'LanXiaomei.exe', mediaDirectory: media, pid: 0, processStarted: '', restart: false }), 'utf8');
   const applied = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', join(root, 'src', 'install-update.ps1'), '-JobFile', join(update, 'job.json')],
     { windowsHide: true, encoding: 'utf8', timeout: 60000 });

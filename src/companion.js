@@ -2,9 +2,11 @@ import { readFile, realpath, stat, mkdir, readdir } from 'node:fs/promises';
 import { join, relative, isAbsolute, extname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { DEFAULT_PLAYLIST, validatePlaylist } from './playlist.js';
+import { isSong, MAX_SONG_BYTES, MAX_VOICE_BYTES } from './music.js';
 const loudnessHashes = new Map();
 
-export const FEATURES = Object.freeze({ ai: false });
+export const FEATURES = Object.freeze({ ai: true });
 export const ACTIONS = Object.freeze([
   { id: 'greet', label: '打个招呼' },
   { id: 'jump', label: '蹦一下' },
@@ -13,6 +15,10 @@ export const ACTIONS = Object.freeze([
   { id: 'wake', label: '叫醒她' },
 ]);
 export const INTERACTIONS = Object.freeze([
+  { id: 'nextVoice', label: '播放语音列表下一条' },
+  { id: 'nextSticker', label: '展示表情列表下一张' },
+  { id: 'setPlaylist', label: '设置互动播放列表' },
+  { id: 'music', label: '歌曲播放器（播放、暂停、继续、切歌、进度）' },
   { id: 'greet', label: '显示问候' },
   { id: 'jump', label: '蹦一下' },
   { id: 'sway', label: '摇一摇' },
@@ -28,7 +34,7 @@ export const INTERACTIONS = Object.freeze([
   { id: 'resetPosition', label: '回到主屏幕' },
   { id: 'moveTo', label: '移动桌宠到屏幕位置', requiresPosition: true },
 ]);
-export const DEFAULT_PREFERENCES = Object.freeze({ scale: 1, volume: 0.65, muted: false, clickVoice: true, clickSticker: true, idleActions: true, portraitMode: 'auto' });
+export const DEFAULT_PREFERENCES = Object.freeze({ scale: 1, volume: 0.65, muted: false, clickVoice: true, clickSticker: true, idleActions: true, lowResourceMode: false, animateIdle: true, autoBlink: true, talkAnimation: true, preloadExpressions: true, portraitMode: 'auto', voicePlaylist: DEFAULT_PLAYLIST, stickerPlaylist: DEFAULT_PLAYLIST, musicPlaylist: { mode: 'sequence', ids: null } });
 
 export function validatePreferences(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('互动设置格式不正确。');
@@ -39,8 +45,15 @@ export function validatePreferences(value) {
   }
   const clickSticker = value.clickSticker ?? DEFAULT_PREFERENCES.clickSticker;
   const portraitMode = value.portraitMode ?? DEFAULT_PREFERENCES.portraitMode;
+  const performance = {};
+  for (const key of ['lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) {
+    performance[key] = value[key] ?? DEFAULT_PREFERENCES[key];
+    if (typeof performance[key] !== 'boolean') throw new Error('性能设置格式不正确。');
+  }
   if (typeof clickSticker !== 'boolean' || typeof portraitMode !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/u.test(portraitMode)) throw new Error('表情互动设置不正确。');
-  return { scale: value.scale, volume: value.volume, muted: value.muted, clickVoice: value.clickVoice, clickSticker, idleActions: value.idleActions, portraitMode };
+  return { scale: value.scale, volume: value.volume, muted: value.muted, clickVoice: value.clickVoice, clickSticker, idleActions: value.idleActions, ...performance, portraitMode,
+    voicePlaylist: validatePlaylist(value.voicePlaylist), stickerPlaylist: validatePlaylist(value.stickerPlaylist),
+    musicPlaylist: validatePlaylist(value.musicPlaylist ?? DEFAULT_PREFERENCES.musicPlaylist) };
 }
 
 // A manifest ID selects a known local clip; pages cannot supply arbitrary paths.
@@ -68,7 +81,7 @@ export async function loadVoices(directory, { loudnessDirectory = directory } = 
       const rel = relative(base, file);
       if (isAbsolute(rel) || rel === '..' || rel.startsWith('../') || rel.startsWith('..\\')) throw new Error('path');
       const info = await stat(file);
-      if (!info.isFile() || info.size > 30 * 1024 * 1024) throw new Error('file');
+      if (!info.isFile() || info.size > (isSong(row) ? MAX_SONG_BYTES : MAX_VOICE_BYTES)) throw new Error('file');
       let gainDb = 0;
       const measured = levels.get(row.id);
       if (measured && Number.isFinite(measured.gainDb) && Math.abs(measured.gainDb) <= 36) {
@@ -83,7 +96,7 @@ export async function loadVoices(directory, { loudnessDirectory = directory } = 
       }
       ids.add(row.id);
       clips.push({ id: row.id, label: String(row.label || row.id).slice(0, 60), text: String(row.text || '').slice(0, 160),
-        group: String(row.group || '其他').slice(0, 40), random: row.random !== false, gainDb,
+        group: String(row.group || '其他').slice(0, 40), random: row.random !== false, music: row.music === true, gainDb,
         duration: Number.isFinite(row.duration) && row.duration >= 0 ? row.duration : 0,
         src: pathToFileURL(file).href });
     } catch { warnings.push(`语音 ${row.id} 的文件缺失、超出目录或过大，已跳过。`); }

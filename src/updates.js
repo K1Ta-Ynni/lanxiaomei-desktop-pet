@@ -41,36 +41,52 @@ export function validateReleaseUrl(value, asset = false) {
   return url.href;
 }
 
-export function selectRelease(releases, currentVersion, { includePrereleases = true, platform = process.platform, arch = process.arch } = {}) {
+function releaseAsset(release, version, edition, platform, arch) {
+  const prefix = `lanxiaomei-desktop-pet-v${version}-`;
+  const names = edition === 'basic'
+    ? [`${prefix}basic-${platform}-${arch}.zip`, `${prefix}${platform}-${arch}.zip`]
+    : [`${prefix}${edition}-${platform}-${arch}.zip`];
+  for (const filename of names) {
+    const asset = release.assets?.find(row => row.name === filename && row.state === 'uploaded' && Number.isSafeInteger(row.size) && row.size > 0 && row.size <= LIMIT);
+    if (asset) return asset;
+  }
+  return null;
+}
+
+export function selectRelease(releases, currentVersion, { includePrereleases = true, platform = process.platform, arch = process.arch,
+  edition = 'basic', currentEdition = 'basic' } = {}) {
   if (!Array.isArray(releases)) throw new Error('GitHub 返回的版本列表格式不正确。');
-  const candidates = releases.filter(row => !row.draft && (includePrereleases || !row.prerelease) && versionParts(row.tag_name));
-  candidates.sort((a, b) => compareVersions(b.tag_name, a.tag_name));
-  const release = candidates[0];
-  if (!release) return null;
-  const version = release.tag_name.replace(/^v/u, '');
-  const filename = `lanxiaomei-desktop-pet-v${version}-${platform}-${arch}.zip`;
-  const asset = release.assets?.find(row => row.name === filename && row.state === 'uploaded' && Number.isSafeInteger(row.size) && row.size > 0 && row.size <= LIMIT);
+  if (!['basic', 'companion'].includes(edition) || !['basic', 'companion'].includes(currentEdition)) throw new Error('Invalid update edition.');
+  const candidates = releases.filter(row => !row.draft && (includePrereleases || !row.prerelease) && versionParts(row.tag_name))
+    .map(release => ({ release, version: release.tag_name.replace(/^v/u, '') }))
+    .sort((a, b) => compareVersions(b.version, a.version));
+  const selected = candidates.find(row => releaseAsset(row.release, row.version, edition, platform, arch)) || candidates[0];
+  if (!selected) return null;
+  const { release, version } = selected;
+  const asset = releaseAsset(release, version, edition, platform, arch);
   const digest = /^sha256:[a-f\d]{64}$/iu.test(asset?.digest || '') ? asset.digest.slice(7).toLowerCase() : null;
-  const checksum = release.assets?.find(row => row.name === 'SHA256SUMS.txt' && row.state === 'uploaded' && row.size > 0 && row.size < 100000);
+  const checksum = asset && release.assets?.find(row => row.name === `${asset.name}.sha256` && row.state === 'uploaded' && row.size > 0 && row.size < 100000)
+    || release.assets?.find(row => row.name === 'SHA256SUMS.txt' && row.state === 'uploaded' && row.size > 0 && row.size < 100000);
   return {
-    version, available: compareVersions(version, currentVersion) > 0,
+    version, edition, available: Boolean(asset) && (compareVersions(version, currentVersion) > 0 || edition !== currentEdition),
     name: String(release.name || release.tag_name).slice(0, 200),
     notes: String(release.body || '').slice(0, 20000), prerelease: Boolean(release.prerelease),
     url: validateReleaseUrl(release.html_url),
-    asset: asset ? { name: filename, size: asset.size, url: validateReleaseUrl(asset.browser_download_url, true), digest,
+    asset: asset ? { name: asset.name, size: asset.size, url: validateReleaseUrl(asset.browser_download_url, true), digest,
       checksumUrl: checksum ? validateReleaseUrl(checksum.browser_download_url, true) : null } : null,
   };
 }
 
 export class UpdateManager {
-  constructor({ version, directory, fetcher, onChange = () => {}, platform, arch }) {
+  constructor({ version, edition = 'basic', directory, fetcher, onChange = () => {}, platform, arch }) {
     this.version = version;
+    this.edition = ['basic', 'companion'].includes(edition) ? edition : 'basic';
     this.directory = directory;
     this.fetcher = fetcher;
     this.onChange = onChange;
     this.platform = platform;
     this.arch = arch;
-    this.state = { phase: 'idle', currentVersion: version, release: null, received: 0, total: 0, error: '' };
+    this.state = { phase: 'idle', currentVersion: version, currentEdition: this.edition, targetEdition: this.edition, release: null, received: 0, total: 0, error: '' };
     this.controller = null;
     this.downloaded = null;
   }
@@ -88,7 +104,8 @@ export class UpdateManager {
     return response;
   }
 
-  async check(includePrereleases = true) {
+  async check(includePrereleases = true, targetEdition = this.edition) {
+    if (!['basic', 'companion'].includes(targetEdition)) throw new Error('Invalid update edition.');
     if (this.controller || ['preparing', 'installing'].includes(this.state.phase)) throw new Error('更新操作正在进行，请稍等。');
     this.controller = new AbortController();
     this.downloaded = null;
@@ -96,8 +113,9 @@ export class UpdateManager {
     try {
       const signal = AbortSignal.any([this.controller.signal, AbortSignal.timeout(25000)]);
       const response = await this.request(API_URL, signal);
-      const release = selectRelease(await response.json(), this.version, { includePrereleases, platform: this.platform, arch: this.arch });
-      this.update({ phase: release?.available ? 'available' : 'current', release });
+      const release = selectRelease(await response.json(), this.version, { includePrereleases, platform: this.platform, arch: this.arch,
+        edition: targetEdition, currentEdition: this.edition });
+      this.update({ phase: release?.available ? 'available' : 'current', release, targetEdition });
     } catch (error) {
       this.update({ phase: 'error', error: error.name === 'TimeoutError' ? '检查更新超时，请检查网络或系统代理后重试。' : error.message });
     } finally { this.controller = null; }
@@ -141,7 +159,7 @@ export class UpdateManager {
       if (received !== asset.size || hash.digest('hex') !== expected) throw new Error('更新包校验失败，请重新下载。');
       await file.close(); file = null;
       await rename(partial, target);
-      this.downloaded = { path: target, sha256: expected, version: release.version };
+      this.downloaded = { path: target, sha256: expected, version: release.version, edition: release.edition };
       this.update({ phase: 'downloaded' });
     } catch (error) {
       this.downloaded = null;
@@ -162,7 +180,7 @@ export async function prepareInstallJob({ downloaded, installDirectory, executab
   const job = join(directory, `install-${randomUUID()}`);
   await mkdir(job, { recursive: true });
   await writeFile(join(job, 'install.ps1'), await readFile(script));
-  await writeFile(join(job, 'job.json'), '\uFEFF' + JSON.stringify({ zip: downloaded.path, sha256: hash, version: downloaded.version,
+  await writeFile(join(job, 'job.json'), '\uFEFF' + JSON.stringify({ zip: downloaded.path, sha256: hash, version: downloaded.version, edition: downloaded.edition || 'basic',
     installDirectory, executable, mediaDirectory: join(dirname(directory), 'media'), pid, processStarted, restart: true }, null, 2), 'utf8');
   return job;
 }

@@ -1,23 +1,33 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; style-src 'self'; script-src 'self'" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <link rel="stylesheet" href="./panel.css" />
-<title>蓝小妹 | AI 聊天</title>
+<title>蓝小妹 | 文字聊天</title>
 </head>
 <body class="chat-page">
 <header class="topbar">
-<div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong id="name">蓝小妹</strong><span>AI 聊天 · 功能暂未开放</span></div></div>
-<button id="settings" class="quiet-button" type="button">互动与模型设置</button>
+  <div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong id="name">蓝小妹</strong><span id="chat-mode">文字陪伴</span></div></div>
+  <div class="button-row"><button id="settings" class="quiet-button" type="button">设置</button><button id="clear-chat" class="quiet-button" type="button">清空聊天</button></div>
 </header>
-<main class="messages"><section class="welcome"><span class="badge">功能暂未开放</span><h1>先一起玩桌宠吧</h1><p>聊天入口先保留。现在可以点按互动、做小动作、休息，或者播放你放入的本地录音。</p><button id="interactions" class="primary-button" type="button">打开互动面板</button></section></main>
-<div id="status" class="status" role="status">AI 聊天功能暂未开放</div>
+<details class="memory-drawer">
+  <summary>长期记忆 <span id="memory-count">0</span></summary>
+  <p>她只会把你明确说“记住……”的内容存为长期记忆。聊天记录与长期记忆可分别清理。</p>
+  <div id="memory-list" class="memory-list"></div>
+  <form id="memory-form"><input id="memory-input" maxlength="500" placeholder="添加一条记忆" aria-label="添加长期记忆" /><button type="submit">保存</button></form>
+</details>
+<details class="speech-options"><summary>语音输入（可选）</summary>
+<p>可选语言取决于系统安装的识别组件。唤醒词使用所选语言能识别的词，例如中文“蓝小妹”、英文“Blue”。唤醒词模式和连续听写在关闭聊天窗口后仍会监听，回复显示在立绘气泡；可点立绘上的监听标记或托盘菜单停止。重启后默认不开麦。</p>
+<p>连续听写不需要唤醒词；勾选自动发送后，识别到的每句话都会提交给模型。关闭自动发送则填入聊天框确认。播放歌曲时建议使用耳机，避免识别到扬声器的声音。</p>
+<div class="speech-row"><select id="speech-language" aria-label="识别语言"><option value="">正在检测…</option></select><input id="wake-phrase" maxlength="50" value="蓝小妹" aria-label="唤醒词" title="请使用所选识别语言能识别的唤醒词" /><button id="speech-once" type="button" class="quiet-button" disabled>说一句</button><label class="check"><input id="speech-wake" type="checkbox" disabled />唤醒词模式</label><label class="check"><input id="speech-continuous" type="checkbox" disabled />连续听写</label><label class="check"><input id="speech-send" type="checkbox" checked />自动发送</label><button id="speech-stop" type="button" class="quiet-button" hidden>停止监听</button></div><span id="speech-status">默认不开麦 · 仅文字回答</span></details>
+<main id="messages" class="messages" aria-live="polite"></main>
+<div class="status-row"><div id="status" class="status" role="status"></div><button id="cancel-message" type="button" class="cancel-button" hidden>停止生成</button></div>
 <form id="composer" class="composer">
-<textarea id="input" rows="2" placeholder="功能暂未开放" aria-label="消息" disabled></textarea>
-<button id="send" type="submit" disabled>发送</button>
-<small>模型连接与角色设定将在后续版本开放</small>
+  <textarea id="input" rows="2" maxlength="4000" placeholder="和蓝小妹聊聊…" aria-label="消息"></textarea>
+  <button id="send" type="submit" aria-label="发送" title="发送"><svg viewBox="0 0 24 24"><path d="M5 12h13M12 5l7 7-7 7" /></svg></button>
+  <small>文字回复 · 明确提出播放或发送时，才会调用本地互动素材</small>
 </form>
 <script type="module" src="./chat.js"></script>
 </body>

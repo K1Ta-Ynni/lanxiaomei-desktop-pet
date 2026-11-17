@@ -15,9 +15,10 @@
     "laugh": "assets/portraits/portrait-laugh.png",
     "teary": "assets/portraits/portrait-teary.png",
     "surprised": "assets/portraits/portrait-surprised.png",
+    "confused": "assets/portraits/portrait-confused.png",
     "annoyed": "assets/portraits/portrait-annoyed.png"
   },
-  "expressionLabels": { "blink": "闭眼", "happy": "闭眼笑", "shy": "害羞", "smile": "脸红微笑", "sleepy": "困倦", "pout": "嘟嘴", "talk": "张嘴", "laugh": "大笑", "teary": "委屈", "surprised": "惊讶", "annoyed": "无语" },
+  "expressionLabels": { "blink": "闭眼", "happy": "闭眼笑", "shy": "害羞", "smile": "脸红微笑", "sleepy": "困倦", "pout": "嘟嘴", "talk": "张嘴", "laugh": "大笑", "teary": "委屈", "surprised": "惊讶", "confused": "疑惑", "annoyed": "无语" },
   "idleExpressions": ["normal", "smile", "shy", "sleepy"],
   "avatar": "assets/portraits/avatar.png",
   "displaySize": { "width": 244, "height": 360 },

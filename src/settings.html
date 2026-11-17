@@ -8,8 +8,24 @@
 <title>蓝小妹 · 互动与语音</title>
 </head>
 <body class="settings-page">
-<header class="topbar"><div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong>蓝小妹 · 互动与语音</strong><span>本地陪伴，不需要连接模型</span></div></div></header>
+<aside class="sidebar">
+<div class="brand"><img src="../assets/portraits/avatar.png" alt="蓝小妹" /><strong>蓝小妹<span>DESKTOP COMPANION</span></strong></div>
+<nav class="page-nav" aria-label="功能导航">
+<button type="button" data-page="home" aria-current="page"><span>✦</span> 互动小屋</button>
+<button type="button" data-page="voices"><span>♫</span> 语音收藏</button>
+<button type="button" data-page="stickers"><span>▧</span> 表情口袋</button>
+<button type="button" data-page="music"><span>♪</span> 音乐播放器</button>
+<button type="button" data-page="preferences"><span>⚙</span> 偏好设置</button>
+<button type="button" data-page="ai"><span>◇</span> 陪伴与模型</button>
+<button type="button" data-page="updates"><span>↻</span> 版本与更新</button>
+</nav>
+<div class="sidebar-note">一点声音，一点陪伴。<br /><span>基础模式无需模型</span></div>
+</aside>
+<div class="settings-workspace">
+<header class="topbar"><div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong id="page-title">互动小屋</strong><span id="page-description">今天也来打个招呼吧</span></div></div><span class="local-badge">● 本地陪伴</span></header>
 <main class="settings-form">
+<div class="settings-panel" data-panel="home">
+<div class="welcome-strip"><div><span class="eyebrow">A LITTLE COMPANY</span><h1>蓝小妹在这里</h1><p>打个招呼，听听声音。把喜欢的片段收进自己的列表。</p></div><img src="../assets/portraits/portrait-smile.png" alt="" /></div>
 <section class="card">
 <h2>游戏模式与显示</h2>
 <label class="check"><input id="game-mode" type="checkbox" /> 游戏模式 · Ctrl+Alt+G</label>
@@ -26,57 +42,127 @@
 <div id="expressions" class="action-grid"></div>
 <div id="action-result" class="result" role="status"></div>
 </section>
+</div>
+<div class="settings-panel" data-panel="voices" hidden>
 <section class="card">
-<h2>本地语音包</h2>
+<div class="section-title"><h2>语音收藏</h2><span class="badge">点按互动 · 一次一条</span></div>
+<div class="button-row wrap"><label for="voice-playlist-mode">播放模式</label><select id="voice-playlist-mode"><option value="random">随机播放</option><option value="sequence">顺序循环</option><option value="repeat">单曲循环</option></select><button id="voice-playlist-next" class="secondary-button" type="button">播放下一条</button></div>
+<div class="button-row wrap"><button id="voice-playlist-default" class="secondary-button" type="button">全选非歌曲</button><button id="voice-playlist-all" class="secondary-button" type="button">全选（含歌曲）</button><button id="voice-playlist-clear" class="secondary-button" type="button">清空列表</button></div>
+<p>勾选录音加入互动列表，修改立即保存。顺序按列表编号循环；单曲循环重复列表第一条。每次互动只播一条，不会自动连续播放。直接点击录音可单独试听。</p>
+<div id="voice-playlist-status" class="result" role="status" aria-live="polite"></div>
+<div class="media-columns">
+<details class="library" id="voice-library" open><summary>全部录音 <span>点击折叠素材库</span></summary>
 <p id="voice-count">正在读取…</p>
 <div id="voice-list" class="voice-list"></div>
+</details>
+<aside class="selected-panel"><h3>我的互动列表 <span id="voice-selected-count">0</span></h3><p>点按时从这里选择，编号就是顺序播放次序。</p><div id="voice-selected" class="selected-list"></div></aside>
+</div>
 <div class="button-row wrap"><button id="voice-folder" class="secondary-button" type="button">打开语音目录</button><button id="refresh-voices" class="secondary-button" type="button">刷新语音包</button><button id="stop-voice" class="secondary-button" type="button">停止播放</button></div>
 <div id="voice-result" class="result" role="status" aria-live="polite"></div>
 </section>
+</div>
+<div class="settings-panel" data-panel="stickers" hidden>
 <section class="card">
 <h2>表情包</h2>
+<div class="button-row wrap"><label for="sticker-playlist-mode">播放模式</label><select id="sticker-playlist-mode"><option value="random">随机播放</option><option value="sequence">顺序循环</option><option value="repeat">单张循环</option></select></div>
+<div class="button-row wrap"><button id="sticker-playlist-default" class="secondary-button" type="button">全选</button><button id="sticker-playlist-clear" class="secondary-button" type="button">清空列表</button></div>
+<p>勾选图片加入互动列表，修改立即保存。顺序按列表编号循环；单张循环重复列表第一张。点击缩略图仍可单独发送。</p>
+<div id="sticker-playlist-status" class="result" role="status" aria-live="polite"></div>
+<div class="media-columns">
+<details class="library" id="sticker-library" open><summary>全部表情包 <span>点击折叠素材库</span></summary>
 <p id="sticker-count">正在读取…</p>
 <div id="sticker-list" class="sticker-list"></div>
-<button id="random-sticker" class="secondary-button" type="button">随机发一个表情包</button>
+</details>
+<aside class="selected-panel"><h3>我的表情列表 <span id="sticker-selected-count">0</span></h3><p>从素材库勾选，在这里预览或移除。</p><div id="sticker-selected" class="selected-list selected-stickers"></div></aside>
+</div>
+<button id="random-sticker" class="secondary-button" type="button">发送列表下一张</button>
 <div class="button-row wrap"><button id="import-stickers" class="primary-button" type="button">添加表情包</button><button id="sticker-folder" class="secondary-button" type="button">打开表情包目录</button><button id="refresh-stickers" class="secondary-button" type="button">刷新</button><button id="hide-sticker" class="secondary-button" type="button">收起桌面表情</button></div>
 <div id="sticker-result" class="result" role="status" aria-live="polite"></div>
 </section>
+</div>
+<div class="settings-panel" data-panel="music" hidden>
+<section class="card music-card">
+<div class="section-title"><h2>音乐播放器</h2><span class="badge">本地歌曲 · 连续播放</span></div>
+<div class="now-playing"><div id="record-disc" class="record-disc"><span>♪</span></div><div><span class="eyebrow">NOW PLAYING</span><h1 id="music-title">选一首喜欢的歌</h1><p id="music-status" role="status">歌曲会连续播放，关闭面板也能继续听。</p></div></div>
+<div class="music-progress"><input id="music-seek" type="range" min="0" max="0" step="0.1" value="0" disabled aria-label="歌曲播放进度" /><div><span id="music-position">0:00</span><span id="music-duration">0:00</span></div></div>
+<div class="music-controls"><button id="music-previous" class="secondary-button" type="button" title="上一首">上一首</button><button id="music-toggle" class="primary-button" type="button">播放</button><button id="music-next" class="secondary-button" type="button">下一首</button><button id="music-stop" class="quiet-button" type="button">停止</button><select id="music-playlist-mode" aria-label="歌曲播放模式"><option value="sequence">顺序循环</option><option value="random">随机播放</option><option value="repeat">单曲循环</option></select></div>
+<div class="music-volume"><label for="music-volume">音量</label><input id="music-volume" type="range" min="0" max="1" step="0.01" /><output id="music-volume-value">65%</output><button id="music-mute" class="quiet-button" type="button" aria-pressed="false">静音</button></div>
+<p>播放时进入歌姬模式：点按角色只可冒表情包，不打断歌曲。鼠标移到桌宠可见歌曲控制；手动点播语音会替换歌曲，游戏模式、隐藏及休息时停止播放。</p>
+<div id="music-result" class="result" role="status"></div>
+</section>
+<section class="card">
+<div class="section-title"><h2>歌曲列表</h2><div class="button-row"><button id="import-music" class="primary-button" type="button">添加歌曲</button><button id="music-refresh" class="secondary-button" type="button">刷新</button></div></div>
+<p>支持 MP3、WAV、OGG，每首不超过 500 MiB。添加后自动进入歌曲列表，不加入默认点按语音。</p>
+<div class="button-row"><button id="music-playlist-default" class="secondary-button" type="button">全选歌曲</button><button id="music-playlist-clear" class="secondary-button" type="button">清空选曲</button></div>
+<div id="music-playlist-status" class="result" role="status"></div>
+<div class="media-columns"><details class="library" id="music-library" open><summary>全部歌曲 <span>勾选加入播放列表</span></summary><div id="music-list" class="song-list"></div></details><aside class="selected-panel"><h3>正在使用的歌单 <span id="music-selected-count">0</span></h3><p>点击歌名播放，播放结束后自动切换。</p><div id="music-selected" class="selected-list"></div></aside></div>
+</section>
+</div>
+<div class="settings-panel" data-panel="preferences" hidden>
 <form id="preferences-form" class="card">
 <h2>互动设置</h2>
 <div class="field"><label for="scale">大小 <output id="scale-value">100%</output></label><input id="scale" type="range" min="0.6" max="1.6" step="0.05" /></div>
 <div class="field"><label for="volume">音量 <output id="volume-value">65%</output></label><input id="volume" type="range" min="0" max="1" step="0.05" /></div>
 <label class="check"><input id="muted" type="checkbox" /> 静音（保留语音字幕与动作）</label>
-<label class="check"><input id="clickVoice" type="checkbox" /> 点按时随机播放语音，再点立即打断并换下一条</label>
+<label class="check"><input id="clickVoice" type="checkbox" /> 点按时从语音列表播放，再点立即打断并换下一条</label>
 <label class="check"><input id="clickSticker" type="checkbox" /> 点按时也可冒表情包（与语音二选一，两项都开启时约 1/4 概率）</label>
 <label class="check"><input id="idleActions" type="checkbox" /> 偶尔自己摇一摇或蹦一下（不自动发声）</label>
+<details class="performance-options"><summary>资源占用与动画选项</summary>
+<p>关闭待机效果可减少空闲时的图像渲染；关闭表情预加载会按需解码，首次展示可能稍慢。此项只影响本桌宠，不会修改 Windows 的动画效果设置。</p>
+<label class="check"><input id="lowResourceMode" type="checkbox" /> 省资源模式（停用下列效果，并暂停空闲动作和随机待机表情）</label>
+<label class="check"><input id="animateIdle" type="checkbox" /> 立绘待机浮动</label>
+<label class="check"><input id="autoBlink" type="checkbox" /> 自动眨眼</label>
+<label class="check"><input id="talkAnimation" type="checkbox" /> 播放语音时张嘴</label>
+<label class="check"><input id="preloadExpressions" type="checkbox" /> 预加载全部表情图片</label>
+</details>
 <div class="field"><label for="portraitMode">常驻表情</label><select id="portraitMode"><option value="auto">待机随机轮换</option><option value="normal">原始表情</option></select><small>随机轮换每隔约 30～60 秒切换一次微笑、害羞或困倦。互动结束后回到常驻表情。</small></div>
 <button class="primary-button" type="submit">保存互动设置</button>
 <div id="result" class="result" role="status" aria-live="polite"></div>
 </form>
+</div>
+<div class="settings-panel" data-panel="ai" hidden>
 <section id="model-section" class="card">
-<div class="section-title"><h2>模型接入</h2><span class="badge">功能暂未开放</span></div>
-<p>入口先保留，当前版本先玩桌宠互动。</p>
-<fieldset disabled class="model-fields">
-<div class="field"><label for="baseUrl">API 地址</label><input id="baseUrl" type="url" placeholder="后续开放" /></div>
-<div class="field"><label for="model">模型 ID</label><input id="model" placeholder="后续开放" /></div>
-<div class="field"><label for="apiKey">API 密钥</label><input id="apiKey" type="password" placeholder="后续开放" /></div>
-<button type="button" class="secondary-button">保存模型设置</button>
-</fieldset>
-<button id="open-chat" type="button" class="quiet-button">AI 聊天 · 功能暂未开放</button>
+<div class="section-title"><h2>桌宠模式</h2><span id="mode-badge" class="badge">基础版</span></div>
+<p>随时切换模式。退回基础版会停用聊天，但保留模型设置、聊天记录和记忆。</p>
+<div class="field"><label for="assistant-mode">运行模式</label><select id="assistant-mode"><option value="basic">基础桌宠 · 本地互动</option><option value="companion">陪伴版 · 文字聊天与记忆</option><option value="assistant" disabled>助手版 · 等待 DSH 接入</option></select></div>
+<div class="field"><label for="baseUrl">兼容 OpenAI 的 API 地址</label><input id="baseUrl" type="url" placeholder="https://api.deepseek.com" /></div>
+<div class="field"><label for="model">模型 ID</label><input id="model" placeholder="deepseek-flash" /></div>
+<div class="field"><label for="apiKey">API 密钥</label><input id="apiKey" type="password" autocomplete="new-password" placeholder="仅保存在本机系统加密存储中" /></div>
+<div id="key-status" class="result" role="status"></div>
+<div class="button-row"><button id="save-model" type="button" class="primary-button">保存模式与模型</button><button id="clear-key" type="button" class="secondary-button">清除密钥</button><button id="open-chat" type="button" class="quiet-button">打开文字聊天</button></div>
+<small>陪伴版只用文字回复。仅当你明确要求时，才会播放匹配到的本地歌曲/语音或发送表情包。聊天记录和记忆保存在本机。</small>
+<small>发送聊天时，当前对话片段和已保存记忆会提交给你配置的模型服务商；服务商可能按其政策留存请求或计费。API 密钥使用系统加密存储。</small>
+<details class="provider-guide" id="deepseek-guide">
+<summary>DeepSeek API 接入教程（从创建 Key 到聊天测试）</summary>
+<ol>
+<li><strong>打开 DeepSeek 开放平台并登录。</strong><button type="button" class="text-link" data-deepseek-link="platform">打开开放平台</button>。这是 API 开放平台；普通 DeepSeek 网页聊天会员与 API 余额是两套服务。</li>
+<li><strong>创建标准 API Key。</strong>在平台的 API Keys 页面点“创建 API key”，填写便于辨认的名称并确认。创建完成后立即复制并妥善保管；离开页面后通常不能再次查看明文。不要发到聊天、截图或公开仓库。</li>
+<li><strong>确认 API 余额与价格。</strong>API 调用按模型和 Token 用量计费，余额不足时需要在平台处理。<button type="button" class="text-link" data-deepseek-link="pricing">查看官方模型与价格</button>。先用 Flash 模型少量测试，并留意平台用量。</li>
+<li><strong>在这里填入连接信息。</strong>运行模式选“陪伴版”；API 地址填 <code>https://api.deepseek.com</code>，模型 ID 填 <code>deepseek-flash</code>，API 密钥粘贴刚创建的标准 Key，然后点“保存模式与模型”。桌宠会用 Windows 系统加密保存 Key。</li>
+<li><strong>先测普通聊天，再测互动指令。</strong>点“打开文字聊天”，发送“你好”。确认有文字回复后，再试“播放雨爱”或“随机发一个表情包”；相应歌曲/素材需先存在本地。调用失败时检查模型 ID、余额和 API Key，也可查看下方官方文档。</li>
+</ol>
+<div class="guide-note"><strong>关于 Harness 管理的连接：</strong>“App-managed / 由 Harness 管理”表示连接凭据由 Harness 保存，通常不是可复制的标准 API Key，不能填进上面的 API 密钥框。当前陪伴版使用标准 API Key 直接连接模型服务。将来若接入 DSH，会通过 DSH 支持的接口使用它管理的连接；能否复用现有登录状态，要完成适配后实测，目前不能保证，也不需要导出 Harness 的内部凭据。</div>
+<div class="button-row wrap"><button type="button" class="secondary-button" data-deepseek-link="firstCall">官方 API 首次调用文档</button><button type="button" class="secondary-button" data-deepseek-link="models">模型能力与工具调用说明</button></div>
+</details>
 </section>
+</div>
+<div class="settings-panel" data-panel="updates" hidden>
 <section id="updates-section" class="card">
 <h2>版本与更新</h2>
 <p id="current-version">正在读取版本…</p>
+<div class="field"><label for="update-edition">要切换到的版本类别</label><select id="update-edition"><option value="basic">基础版 · 仅桌宠功能</option><option value="companion">陪伴版 · 聊天与记忆</option></select></div>
 <label class="check"><input id="include-prereleases" type="checkbox" checked /> 包含预览版本</label>
 <div class="button-row wrap"><button id="check-updates" type="button" class="primary-button">检查更新</button><button id="release-page" type="button" class="secondary-button">打开发布页</button></div>
 <div id="update-result" class="result" role="status" aria-live="polite"></div>
 <pre id="update-notes" class="update-notes" hidden></pre>
 <progress id="update-progress" max="100" value="0" aria-label="更新下载进度" hidden></progress>
 <div class="button-row wrap"><button id="download-update" type="button" class="primary-button" hidden>下载新版</button><button id="cancel-update" type="button" class="secondary-button" hidden>取消下载</button><button id="install-update" type="button" class="primary-button" hidden>更新并重启</button><button id="show-update" type="button" class="secondary-button" hidden>查看下载文件</button></div>
-<p>Windows 免安装版可原位更新：校验更新包后退出、替换程序并重启，失败时尝试恢复旧版。语音包和表情包保存在独立的用户数据目录，升级时会迁移旧安装目录中的文件。检查更新仅在你点击时联网。</p>
+<p>可切换基础版与陪伴版，也可安装目标类别的较新版本或较旧版本。更新前会校验安装包；切换类别或版本不会删除本地设置、API 密钥、聊天记录、记忆、语音、表情包和歌曲。检查更新仅在你点击时联网。</p>
 </section>
+</div>
 <footer id="art-credit" class="credit"></footer>
 </main>
+</div>
 <script type="module" src="./settings.js"></script>
 <script type="module" src="./update-ui.js"></script>
 </body>

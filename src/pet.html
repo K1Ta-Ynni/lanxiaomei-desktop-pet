@@ -9,6 +9,18 @@
   </head>
   <body>
     <main class="pet-stage">
+      <button id="speech-indicator" type="button" hidden title="停止语音监听" aria-label="停止语音监听">● 监听中 · 关闭</button>
+      <section id="music-widget" class="music-widget" aria-label="歌姬模式歌曲控制" hidden>
+        <div class="music-widget-heading"><span id="music-widget-title">♫ 正在播放</span><button id="music-widget-mode" type="button" title="切换播放模式">顺序</button></div>
+        <input id="music-widget-progress" type="range" min="0" max="1" step="0.1" value="0" aria-label="歌曲进度" />
+        <div class="music-widget-controls">
+          <button id="music-widget-previous" type="button" title="上一首" aria-label="上一首">◀|</button>
+          <button id="music-widget-toggle" type="button" title="暂停" aria-label="暂停">Ⅱ</button>
+          <button id="music-widget-next" type="button" title="下一首" aria-label="下一首">|▶</button>
+          <button id="music-widget-stop" type="button" title="停止歌曲" aria-label="停止歌曲">■</button>
+        </div>
+        <label class="music-widget-volume"><span>音量</span><input id="music-widget-volume" type="range" min="0" max="1" step="0.01" value="0.65" aria-label="歌曲音量" /><output id="music-widget-volume-value">65%</output></label>
+      </section>
       <section id="bubble" class="bubble" aria-live="polite" hidden>
         <span id="greeting"></span>
         <img id="sticker" class="sticker-display" alt="" hidden />
@@ -19,13 +31,19 @@
       </button>
       <span id="sleep" class="sleep" hidden aria-label="休息中">z z Z</span>
       <section id="sticker-picker" class="sticker-picker" aria-label="选择表情包" hidden>
-        <div class="picker-heading"><strong>表情包</strong><button id="quick-random" type="button">随机发一个</button><button id="close-picker" type="button" aria-label="关闭选择器">×</button></div>
+        <div class="picker-heading"><strong>表情包</strong><button id="quick-random" type="button">列表下一张</button><button id="close-picker" type="button" aria-label="关闭选择器">×</button></div>
         <p id="picker-status"></p>
         <div id="quick-stickers" class="quick-stickers"></div>
       </section>
+      <section id="music-picker" class="sticker-picker music-picker" aria-label="选择歌曲" hidden>
+        <div class="picker-heading"><strong>播放歌曲</strong><button id="close-music-picker" type="button" aria-label="关闭歌曲列表">×</button></div>
+        <p id="music-picker-status"></p>
+        <div id="quick-music" class="quick-music"></div>
+      </section>
       <nav class="pet-tools" aria-label="蓝小妹桌宠操作">
         <button id="open-stickers" type="button" title="发个表情包" aria-label="发个表情包" aria-controls="sticker-picker" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14a4 4 0 0 0 8 0M8 8.5h.1M16 8.5h.1"/></svg></button>
-        <button id="open-chat" type="button" title="AI 聊天 · 功能暂未开放" aria-label="AI 聊天 · 功能暂未开放"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 13.5h5"/></svg></button>
+        <button id="open-music" type="button" title="播放歌曲" aria-label="播放歌曲" aria-controls="music-picker" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></button>
+        <button id="open-chat" type="button" title="文字聊天" aria-label="文字聊天"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 13.5h5"/></svg></button>
         <button id="open-settings" type="button" title="互动与语音" aria-label="互动与语音"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.3a3.7 3.7 0 1 0 0 7.4 3.7 3.7 0 0 0 0-7.4Z"/><path d="m19.4 13.5 1.1.9-1.2 2.1-1.4-.5a7.7 7.7 0 0 1-1.4.8l-.3 1.5h-2.4l-.4-1.5a7.7 7.7 0 0 1-1.5-.1l-1 1.1-2.1-1.2.5-1.4a7.7 7.7 0 0 1-.8-1.4l-1.5-.3v-2.4l1.5-.4a7.7 7.7 0 0 1 .1-1.5l-1.1-1 1.2-2.1 1.4.5a7.7 7.7 0 0 1 1.4-.8l.3-1.5h2.4l.4 1.5a7.7 7.7 0 0 1 1.5.1l1-1.1 2.1 1.2-.5 1.4a7.7 7.7 0 0 1 .8 1.4l1.5.3v2.4l-1.5.4a7.7 7.7 0 0 1-.1 1.5Z"/></svg></button>
         <button id="quit" type="button" title="退出桌宠" aria-label="退出桌宠"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5.5A1.5 1.5 0 0 0 4 5.5v13A1.5 1.5 0 0 0 5.5 20H10M14 16l4-4-4-4M18 12H9"/></svg></button>
       </nav>

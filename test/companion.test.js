@@ -1,6 +1,6 @@
 ﻿import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, open, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -8,7 +8,7 @@ import { DEFAULT_PREFERENCES, INTERACTIONS, validatePreferences, loadVoices, loa
 
 test('rejects invalid local preferences rather than persisting unusable values', () => {
   assert.deepEqual(validatePreferences(DEFAULT_PREFERENCES), DEFAULT_PREFERENCES);
-  const { clickSticker, portraitMode, ...legacy } = DEFAULT_PREFERENCES;
+  const { clickSticker, portraitMode, lowResourceMode, animateIdle, autoBlink, talkAnimation, preloadExpressions, ...legacy } = DEFAULT_PREFERENCES;
   assert.deepEqual(validatePreferences(legacy), DEFAULT_PREFERENCES, 'older preferences gain new defaults without losing volume or scale');
   for (const changed of [{ scale: NaN }, { scale: 2 }, { volume: -1 }, { muted: 'yes' }]) {
     assert.throws(() => validatePreferences({ ...DEFAULT_PREFERENCES, ...changed }));
@@ -46,6 +46,27 @@ test('voice manifest fences files to its own directory and skips missing entries
     assert.equal(catalog.warnings.length, 4);
     await writeFile(join(directory, 'manifest.json'), '{broken');
     await assert.rejects(loadVoices(directory), /清单无法读取/u);
+  } finally { await rm(temp, { recursive: true, force: true }); }
+});
+
+test('song files may be larger than voice clips while both limits remain bounded', async () => {
+  const temp = await mkdtemp(join(tmpdir(), 'pet-media-size-'));
+  try {
+    const directory = join(temp, 'media');
+    await mkdir(directory);
+    const largeSong = await open(join(directory, 'large.wav'), 'w');
+    await largeSong.truncate(31 * 1024 * 1024);
+    await largeSong.close();
+    const largeVoice = await open(join(directory, 'voice.wav'), 'w');
+    await largeVoice.truncate(31 * 1024 * 1024);
+    await largeVoice.close();
+    await writeFile(join(directory, 'manifest.json'), JSON.stringify({ clips: [
+      { id: 'song', file: 'large.wav', group: '歌曲' },
+      { id: 'voice', file: 'voice.wav', group: '日常语音' },
+    ] }));
+    const result = await loadVoices(directory);
+    assert.deepEqual(result.clips.map(clip => clip.id), ['song']);
+    assert.equal(result.warnings.length, 1);
   } finally { await rm(temp, { recursive: true, force: true }); }
 });
 

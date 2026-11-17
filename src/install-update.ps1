@@ -83,9 +83,15 @@ try {
   $sourceDirectory = $roots[0].FullName
   $packageFile = Join-Path $sourceDirectory 'resources\app\package.json'
   $package = Get-Content -LiteralPath $packageFile -Raw -Encoding UTF8 | ConvertFrom-Json
+  $editionFile = Join-Path $sourceDirectory 'resources\app\edition.json'
+  $packageEdition = 'basic'
+  if (Test-Path -LiteralPath $editionFile -PathType Leaf) {
+    $packageEdition = (Get-Content -LiteralPath $editionFile -Raw -Encoding UTF8 | ConvertFrom-Json).edition
+  }
   if ($package.name -ne 'lanxiaomei-desktop-pet' -or $package.version -ne $job.version -or
+      $packageEdition -ne $job.edition -or
       -not (Test-Path -LiteralPath (Join-Path $sourceDirectory $job.executable) -PathType Leaf)) {
-    throw 'The update is not the expected application version.'
+    throw 'The update is not the expected application version and edition.'
   }
   Write-Result 'ready' 'Update extracted and validated; waiting for the running application to exit.'
   if ($job.pid -gt 0) {

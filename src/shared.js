@@ -1,7 +1,8 @@
 export const DEFAULT_SETTINGS = Object.freeze({
+  mode: 'basic',
   displayName: '',
-  baseUrl: 'https://api.deepseek.com/v1',
-  model: '',
+  baseUrl: 'https://api.deepseek.com',
+  model: 'deepseek-flash',
   encryptedApiKey: '',
 });
 
@@ -24,12 +25,26 @@ export function chatCompletionsUrl(value) {
   return url.toString();
 }
 
+export function isDeepSeekEndpoint(value) {
+  try { return new URL(value).hostname === 'api.deepseek.com'; }
+  catch { return false; }
+}
+
+export function migrateModelSettings(value) {
+  const settings = { ...DEFAULT_SETTINGS, ...(value && typeof value === 'object' ? value : {}) };
+  if (!isDeepSeekEndpoint(settings.baseUrl)) return settings;
+  if (new URL(settings.baseUrl).pathname.replace(/\/+$/u, '') === '/v1') settings.baseUrl = DEFAULT_SETTINGS.baseUrl;
+  if (!settings.model || settings.model === 'deepseek-chat') settings.model = DEFAULT_SETTINGS.model;
+  return settings;
+}
+
 export function validateSettings(input) {
   if (!input || typeof input !== 'object') throw new Error('设置格式不正确。');
+  const mode = ['basic', 'companion', 'assistant'].includes(input.mode) ? input.mode : 'basic';
   if (typeof input.apiKey === 'string' && input.apiKey.length > 8192) throw new Error('API 密钥过长。');
   const displayName = String(input.displayName ?? '').trim().slice(0, 32);
   const model = String(input.model ?? '').trim().slice(0, 160);
   const baseUrl = String(input.baseUrl ?? '').trim().slice(0, 500);
   if (baseUrl) chatCompletionsUrl(baseUrl);
-  return { displayName, model, baseUrl, apiKey: String(input.apiKey ?? '').trim() };
+  return { mode, displayName, model, baseUrl, apiKey: String(input.apiKey ?? '').trim() };
 }

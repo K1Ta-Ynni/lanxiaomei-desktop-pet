@@ -31,6 +31,21 @@ test('accepts only uploaded update assets for this repository and platform', () 
   assert.throws(() => validateReleaseUrl('https://github.com/K1Ta-Ynni/another/releases/tag/v0.2.0'));
 });
 
+test('selects the requested edition and treats edition switching as an update even at the same version', () => {
+  const companionName = 'lanxiaomei-desktop-pet-v0.2.0-companion-win32-x64.zip';
+  const companion = { ...release, assets: [...release.assets, { name: companionName, state: 'uploaded', size: assetBytes.length,
+    browser_download_url: `https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases/download/v0.2.0/${companionName}` }] };
+  const switchUp = selectRelease([companion], '0.2.0', { platform: 'win32', arch: 'x64', edition: 'companion', currentEdition: 'basic' });
+  assert.equal(switchUp.available, true);
+  assert.equal(switchUp.asset.name, companionName);
+  const stayBasic = selectRelease([companion], '0.2.0', { platform: 'win32', arch: 'x64', edition: 'basic', currentEdition: 'basic' });
+  assert.equal(stayBasic.available, false);
+  assert.equal(stayBasic.asset.name, assetName, 'legacy basic packages remain eligible for basic installations');
+  const downgrade = selectRelease([companion], '0.3.0', { platform: 'win32', arch: 'x64', edition: 'basic', currentEdition: 'companion' });
+  assert.equal(downgrade.available, true);
+  assert.equal(downgrade.version, '0.2.0');
+});
+
 test('downloads update into a separate directory and verifies size and SHA-256', async () => {
   const data = await mkdtemp(join(tmpdir(), 'lanxiaomei-update-'));
   try {
