@@ -51,6 +51,18 @@ try {
   assert.equal(pack.warnings.length, 0);
   const bundled = JSON.parse(await readFile(join(root, 'assets/voices/manifest.json'), 'utf8')).clips;
   assert.equal(pack.clips.length, bundled.length, 'all bundled recordings migrate to user media on first launch');
+  assert.ok(pack.clips.every(clip => clip.normalized), 'all release recordings have matching loudness measurements');
+  assert.equal(pack.clips.filter(clip => clip.src.endsWith('.m4a')).length, bundled.filter(clip => clip.file.endsWith('.m4a')).length, 'M4A recordings are available in the packaged catalog');
+  await pet.evaluate(() => document.querySelector('#open-music').click());
+  await pet.locator('#quick-music-search').waitFor();
+  await pet.locator('#quick-music-search').fill('不存在的测试歌名');
+  await pet.locator('#music-picker .search-empty').waitFor();
+  assert.equal(await pet.locator('#quick-music [data-song]:visible').count(), 0);
+  await pet.evaluate(() => document.querySelector('#close-music-picker').click());
+  await settings.locator('[data-page=music]').click();
+  await settings.locator('#music-search').fill('不存在的测试歌名');
+  assert.equal(await settings.locator('[data-song]:visible').count(), 0);
+  await settings.locator('#music-search').fill('');
   assert.equal(pack.clips.filter(clip => clip.group === '唱歌').length, bundled.filter(clip => clip.group === '唱歌').length);
   assert.ok(pack.clips.filter(clip => clip.group === '唱歌').every(clip => clip.random === false));
   assert.ok(pack.clips.every(clip => clip.src.includes('/media/voices/')));
@@ -84,6 +96,8 @@ try {
   await reopenedSettings.locator('#pet-hidden').uncheck();
   await reopenedSettings.locator('#game-mode').check();
   await pet.waitForFunction(() => document.body.classList.contains('game-mode'));
+  await pet.evaluate(() => window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 200 })));
+  assert.equal(await pet.locator('.pet-tools').isVisible(), false, 'game mode hides the toolbar in the packaged app');
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true);
   await reopenedSettings.locator('#pet-hidden').check();
   assert.equal((await pet.evaluate(() => window.petApp.desktopState())).gameMode, true);

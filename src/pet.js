@@ -2,6 +2,7 @@
 import { playlistItems, defaultVoiceSelection, PlaylistPlayer } from './playlist.js';
 import { isSong } from './music.js';
 import { singerMode } from './pet-music.js';
+import { listSearch, searchable } from './list-search.js';
 
 const bubble = document.querySelector('#bubble');
 const greeting = document.querySelector('#greeting');
@@ -10,6 +11,14 @@ const stickerPicker = document.querySelector('#sticker-picker');
 const pickerButton = document.querySelector('#open-stickers');
 const musicPicker = document.querySelector('#music-picker');
 const musicPickerButton = document.querySelector('#open-music');
+const quickSearches = Object.fromEntries([
+  ['music', musicPicker, '#quick-music', '歌曲'],
+  ['sticker', stickerPicker, '#quick-stickers', '表情包'],
+].map(([kind, picker, selector, name]) => [kind, listSearch({
+  id: 'quick-' + kind + '-search', mount: picker.querySelector('p'), compact: true,
+  placeholder: '搜索' + name + '名称或分类',
+  targets: [{ container: document.querySelector(selector), name }],
+})]));
 let info, preferences, audio, activeClip;
 let dragging = false, sleeping = false;
 let pointerId, downAt, greetingTimer, actionTimer;
@@ -55,6 +64,7 @@ async function openMusicPicker() {
   musicPickerButton.setAttribute('aria-expanded', 'true');
   const list = document.querySelector('#quick-music');
   list.replaceChildren();
+  quickSearches.music.refresh();
   const status = document.querySelector('#music-picker-status');
   status.textContent = '正在读取…';
   try {
@@ -66,6 +76,7 @@ async function openMusicPicker() {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.song = song.id;
+      searchable(button, song);
       button.setAttribute('aria-current', String(song.id === current.id));
       const icon = document.createElement('span');
       icon.textContent = song.id === current.id && ['playing', 'paused'].includes(current.state) ? '♫' : '▶';
@@ -76,6 +87,7 @@ async function openMusicPicker() {
       button.addEventListener('click', () => { void playSelectedSong(song.id); });
       list.append(button);
     }
+    quickSearches.music.refresh();
   } catch (error) { status.textContent = error.message; }
 }
 async function sendSticker(command) {
@@ -94,6 +106,7 @@ async function openPicker() {
   pickerButton.setAttribute('aria-expanded', 'true');
   const list = document.querySelector('#quick-stickers');
   list.replaceChildren();
+  quickSearches.sticker.refresh();
   document.querySelector('#picker-status').textContent = '正在读取…';
   try {
     const { stickers } = await window.petApp.stickers();
@@ -103,6 +116,7 @@ async function openPicker() {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.sticker = sticker.id;
+      searchable(button, sticker);
       button.title = sticker.label + (sticker.animated ? ' · GIF 动图' : '');
       const image = document.createElement('img');
       image.src = sticker.src;
@@ -115,6 +129,7 @@ async function openPicker() {
       button.addEventListener('click', () => { void sendSticker({ type: 'showSticker', id: sticker.id }); });
       list.append(button);
     }
+    quickSearches.sticker.refresh();
   } catch (error) { document.querySelector('#picker-status').textContent = error.message; }
 }
 
@@ -270,7 +285,7 @@ function scheduleBlink() {
 window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { scheduleBlink(); void syncMusicAnimation(); });
 
 function revealControls() {
-  if (suspended) return;
+  if (clickThrough) return;
   document.body.classList.add('controls-visible');
   clearTimeout(controlsTimer);
   controlsTimer = setTimeout(() => {
@@ -291,12 +306,14 @@ function applyDesktopState(state) {
   suspended = state.petHidden;
   clickThrough = state.gameMode || state.petHidden;
   document.body.classList.toggle('game-mode', state.gameMode);
-  if (suspended) {
-    ++helloSequence;
+  if (clickThrough) {
+    clearTimeout(controlsTimer);
     document.body.classList.remove('controls-visible');
     closePicker();
     closeMusicPicker();
-    clearTimeout(controlsTimer);
+  }
+  if (suspended) {
+    ++helloSequence;
     clearTimeout(expressionTimer);
     portrait.dataset.expression = '';
     stopVoice();

@@ -17,7 +17,7 @@ async function walk(directory) {
   for (const item of await readdir(directory, { withFileTypes: true })) {
     const path = join(directory, item.name);
     if (item.isDirectory()) { await walk(path); continue; }
-    if (!/\.(mp3|wav|ogg)$/iu.test(item.name)) continue;
+    if (!/\.(mp3|wav|ogg|m4a)$/iu.test(item.name)) continue;
     const local = relative(source, path).replaceAll('\\', '/');
     const metadata = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries',
       'stream=codec_name:format=duration', '-of', 'json', path], { encoding: 'utf8', windowsHide: true }));

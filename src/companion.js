@@ -81,7 +81,7 @@ export async function loadVoices(directory, { loudnessDirectory = directory, lou
   const ids = new Set();
   for (const row of manifest.clips) {
     if (!row || typeof row.id !== 'string' || !/^[a-zA-Z0-9_-]{1,64}$/u.test(row.id) || ids.has(row.id) ||
-        typeof row.file !== 'string' || !['.mp3', '.wav', '.ogg'].includes(extname(row.file).toLowerCase())) {
+        typeof row.file !== 'string' || !['.mp3', '.wav', '.ogg', '.m4a'].includes(extname(row.file).toLowerCase())) {
       warnings.push('有一条语音的 ID、文件格式或重复项不正确，已跳过。');
       continue;
     }

@@ -76,6 +76,16 @@ svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width:
 .quick-music button[aria-current="true"] { border-color: #71a997; background: #eef7f2; }
 .quick-music button > span:first-child { flex: 0 0 auto; color: #518c7c; }
 .quick-music button > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-search { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: 8px 0; }
+.list-search label { font-size: 10px; }
+.list-search input { flex: 1; min-width: 0; width: 80px; padding: 5px 6px; border: 1px solid #cbdcd6; border-radius: 6px; background: #fff; color: #193b46; font: inherit; font-size: 11px; user-select: text; }
+.list-search input:focus { outline: 2px solid #87b8a8; outline-offset: 1px; }
+.list-search input::-webkit-search-cancel-button { display: none; }
+.search-clear { flex: 0 0 auto; border: 0; border-radius: 5px; background: #e8f3ee; color: #31565a; cursor: pointer; }
+.search-count { flex-basis: 100%; color: #526d68; font-size: 10px; }
+.search-count:empty { display: none; }
+.search-empty { padding: 6px; color: #526d68; font-size: 11px; }
+[data-search-text][hidden], .search-clear[hidden], .search-empty[hidden] { display: none !important; }
 @keyframes bob { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-5px) rotate(1deg); } }
 @keyframes snooze { 0%, 100% { transform: translateY(7px) rotate(10deg) scale(.96); } 50% { transform: translateY(7px) rotate(10deg) scale(.98); } }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(4px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
@@ -83,6 +93,7 @@ svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width:
 @keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: scale(1.02, .97); } 45% { transform: translateY(-16px) rotate(-2deg); } 75% { transform: translateY(1px) scale(1.02, .98); } }
 @keyframes sway { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 70% { transform: rotate(6deg); } }
 .game-mode .pet-stage { pointer-events: none; }
+.game-mode .pet-tools { visibility: hidden; opacity: 0; pointer-events: none; transition: none; }
 /* Reduced-motion must also stop infinite animations; a 0.01 ms infinite loop
    is perceived as frame-to-frame jitter on high-refresh displays. */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }

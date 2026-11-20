@@ -54,7 +54,7 @@
 <section class="card">
 <div class="section-title"><h2>语音收藏</h2><span class="badge">点按互动 · 一次一条</span></div>
 <div class="button-row wrap"><button id="import-voices" class="primary-button" type="button">添加语音</button><button id="normalize-voices" class="secondary-button" type="button">均衡现有语音</button></div>
-<p>支持多选 MP3、WAV、OGG，每条不超过 30 MiB。添加后自动分析音量，再点击录音试听；可在“编辑”中修改名称和分类。均衡不改写原文件。</p>
+<p>支持多选 MP3、WAV、OGG、M4A，每条不超过 30 MiB。添加后自动分析音量，再点击录音试听；可在“编辑”中修改名称和分类。均衡不改写原文件。</p>
 <div class="button-row wrap"><label for="voice-playlist-mode">播放模式</label><select id="voice-playlist-mode"><option value="random">随机播放</option><option value="sequence">顺序循环</option><option value="repeat">单曲循环</option></select><button id="voice-playlist-next" class="secondary-button" type="button">播放下一条</button></div>
 <div class="button-row wrap"><button id="voice-playlist-default" class="secondary-button" type="button">全选非歌曲</button><button id="voice-playlist-all" class="secondary-button" type="button">全选（含歌曲）</button><button id="voice-playlist-clear" class="secondary-button" type="button">清空列表</button></div>
 <p>勾选录音加入互动列表，修改立即保存。顺序按列表编号循环；单曲循环重复列表第一条。每次互动只播一条，不会自动连续播放。直接点击录音可单独试听。</p>
@@ -105,7 +105,7 @@
 </section>
 <section class="card">
 <div class="section-title"><h2>歌曲列表</h2><div class="button-row"><button id="import-music" class="primary-button" type="button">添加歌曲</button><button id="music-refresh" class="secondary-button" type="button">刷新</button></div></div>
-<p>支持 MP3、WAV、OGG，每首不超过 500 MiB。添加后自动分析音量，不加入默认点按语音。已添加的清唱也可点下方按钮补做均衡；超过 64 MiB 的文件保留原音量，避免分析占用过多内存。</p>
+<p>支持 MP3、WAV、OGG、M4A，每首不超过 500 MiB。添加后自动分析音量，不加入默认点按语音。已添加的清唱也可点下方按钮补做均衡；超过 64 MiB 的文件保留原音量，避免分析占用过多内存。</p>
 <button id="normalize-music" class="secondary-button" type="button">均衡现有歌曲</button>
 <div class="button-row"><button id="music-playlist-default" class="secondary-button" type="button">全选歌曲</button><button id="music-playlist-clear" class="secondary-button" type="button">清空选曲</button></div>
 <div id="music-playlist-status" class="result" role="status"></div>

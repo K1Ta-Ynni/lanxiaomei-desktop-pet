@@ -683,7 +683,7 @@ async function importAudio(event, music) {
   if (audioImportBusy) throw new Error('正在处理音频，请稍候。');
   audioImportBusy = true;
   try {
-    const selected = await dialog.showOpenDialog(settingsWindow, { title: music ? '添加本地歌曲' : '添加本地语音', properties: ['openFile', 'multiSelections'], filters: [{ name: '音频', extensions: ['mp3', 'wav', 'ogg'] }] });
+    const selected = await dialog.showOpenDialog(settingsWindow, { title: music ? '添加本地歌曲' : '添加本地语音', properties: ['openFile', 'multiSelections'], filters: [{ name: '音频', extensions: ['mp3', 'wav', 'ogg', 'm4a'] }] });
     if (selected.canceled) return { imported: 0, warnings: [] };
     const manifestPath = join(voicesDirectory, 'manifest.json');
     const manifest = await readJson(manifestPath, { clips: [] });
@@ -698,7 +698,7 @@ async function importAudio(event, music) {
       if (manifest.clips.length >= 200) { warnings.push('清单最多 200 项。'); break; }
       try {
         const info = await stat(path);
-        if (!info.isFile() || info.size === 0 || info.size > (music ? MAX_SONG_BYTES : MAX_VOICE_BYTES) || !['.mp3', '.wav', '.ogg'].includes(extname(path).toLowerCase())) throw new Error('invalid');
+        if (!info.isFile() || info.size === 0 || info.size > (music ? MAX_SONG_BYTES : MAX_VOICE_BYTES) || !['.mp3', '.wav', '.ogg', '.m4a'].includes(extname(path).toLowerCase())) throw new Error('invalid');
         const id = (music ? 'song_' : 'voice_') + randomUUID().replaceAll('-', '');
         const filename = id + extname(path).toLowerCase();
         await copyFile(path, join(directory, filename), 1);

@@ -84,6 +84,15 @@ button:disabled { cursor: not-allowed; }
 .update-notes { max-height: 200px; margin: 0; padding: 10px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 7px; background: #f0f4f1; color: #456057; font: 12px/1.7 inherit; }
 #update-progress { width: 100%; accent-color: #287e6a; }
 [hidden] { display: none !important; }
+.list-search { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin: 14px 0; }
+.list-search label { color: #456057; font-size: 12px; }
+.list-search input { flex: 1; min-width: 100px; padding: 9px 11px; border: 1px solid #cbdcd6; border-radius: 9px; color: #244b55; background: #fff; }
+.list-search input:focus { outline: 2px solid #80afa0; outline-offset: 1px; }
+.list-search input::-webkit-search-cancel-button { display: none; }
+.search-clear { padding: 5px 10px; border: 1px solid #cbdcd6; border-radius: 7px; color: #31565a; background: #eef6f1; cursor: pointer; }
+.search-count { color: #65786e; font-size: 11px; }
+.search-count:empty { display: none; }
+.search-empty { padding: 12px 4px; color: #65786e; font-size: 12px; }
 .welcome .badge { margin-bottom: 15px; }
 .welcome .primary-button { margin-top: 20px; }
 @media (max-width: 580px) { .topbar { padding: 12px 15px; } .messages { padding: 16px 12px; } .composer { width: calc(100% - 24px); } }

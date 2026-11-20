@@ -447,9 +447,20 @@ try {
   await settings.locator('[data-voice=test]').click();
   await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('正在播放'));
   const beforeGameAnimation = await pet.locator('#pet img').evaluate(image => getComputedStyle(image).animationName);
+  await pet.evaluate(() => document.querySelector('#open-stickers').click());
+  await pet.locator('#sticker-picker').waitFor({ state: 'visible' });
   await settings.locator('[data-page=home]').click();
   await settings.locator('#game-mode').check();
   await pet.waitForFunction(() => document.body.classList.contains('game-mode'));
+  await pet.locator('#sticker-picker').waitFor({ state: 'hidden' });
+  // Windows forwards mouse movement even while the native window is click-through.
+  await pet.evaluate(() => {
+    window.dispatchEvent(new MouseEvent('mousemove', { clientX: 50, clientY: 200 }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab' }));
+  });
+  assert.equal(await pet.evaluate(() => document.body.classList.contains('controls-visible')), false, 'game mode ignores toolbar reveal events');
+  assert.equal(await pet.locator('.pet-tools').isVisible(), false, 'game toolbar stays visually hidden');
+  assert.equal(await pet.locator('.pet-tools').evaluate(element => getComputedStyle(element).pointerEvents), 'none');
   assert.match(await settings.locator('#voice-result').textContent(), /正在播放/u, 'game mode keeps the current voice playing');
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true);
   assert.equal(await settings.locator('#pet-hidden').isChecked(), false);
@@ -464,6 +475,8 @@ try {
   await pet.locator('#sticker').waitFor({ state: 'visible' });
   await settings.locator('#game-mode').uncheck();
   await pet.waitForFunction(() => !document.body.classList.contains('game-mode'));
+  await pet.locator('.pet-tools').waitFor({ state: 'visible' });
+  assert.equal(await pet.evaluate(() => document.body.classList.contains('controls-visible')), true, 'leaving game mode restores toolbar reveal');
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true,
     'leaving game mode keeps the desktop window visible');
   assert.equal(await desktop.evaluate(() => globalThis.lastPetMouseIgnore), false, 'leaving game mode restores mouse interaction');

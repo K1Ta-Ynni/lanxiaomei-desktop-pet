@@ -4,6 +4,7 @@ import { isSong } from './music.js';
 import './settings-nav.js';
 import { renderMusic, renderMusicVolume } from './settings-music.js';
 import { libraryEditor, batchEditor } from './settings-library.js';
+import { listSearch, searchable } from './list-search.js';
 
 const voiceResult = document.querySelector('#voice-result');
 const actionResult = document.querySelector('#action-result');
@@ -21,6 +22,17 @@ document.querySelector('#sticker-create-group').addEventListener('click', () => 
 document.querySelector('#music-create-group').addEventListener('click', () => musicEditor?.create());
 const playlistState = { voice: DEFAULT_PLAYLIST, sticker: DEFAULT_PLAYLIST, music: { mode: 'sequence', ids: null }, expression: DEFAULT_PLAYLIST };
 let playlistSaving = Promise.resolve();
+const searches = Object.fromEntries([
+  ['voice', '语音'], ['music', '歌曲'], ['sticker', '表情包'], ['expression', '表情'],
+].map(([kind, name]) => {
+  const library = document.querySelector('#' + kind + '-list');
+  const selected = document.querySelector('#' + kind + '-selected');
+  return [kind, listSearch({ id: kind + '-search', mount: library.closest('.media-columns'),
+    placeholder: `搜索${name}名称或分类`, targets: [
+      { container: library, name: '素材', groups: '.voice-category' },
+      { container: selected, name: '已选' },
+    ] })];
+}));
 function renderPerformanceControls() {
   const reduced = document.querySelector('#lowResourceMode').checked;
   for (const key of ['animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) document.getElementById(key).disabled = reduced;
@@ -75,6 +87,7 @@ function renderPlaylist(kind) {
   for (const [index, item] of selected.entries()) {
     const row = document.createElement('div');
     row.className = 'selected-row';
+    searchable(row, item);
     const play = document.createElement('button');
     play.type = 'button';
     play.className = 'selected-play';
@@ -107,6 +120,7 @@ function renderPlaylist(kind) {
     row.append(play, remove);
     box.append(row);
   }
+  searches[kind].refresh();
 }
 function updatePlaylist(kind, change) {
   playlistSaving = playlistSaving.catch(() => {}).then(async () => {
@@ -227,6 +241,7 @@ async function refreshVoices() {
         });
         const entry = document.createElement('div');
         entry.className = 'playlist-entry';
+        searchable(entry, clip);
         entry.append(batch.voice.checkbox(clip), playlistCheckbox('voice', clip), button, voiceEditor.itemButton(clip));
         groupList.append(entry);
       }
@@ -268,6 +283,7 @@ function renderSongLibrary(categories) {
     for (const clip of groupSongs) {
     const row = document.createElement('div');
     row.className = 'song-row';
+    searchable(row, clip);
     const play = document.createElement('button');
     play.type = 'button';
     play.className = 'voice-button';
@@ -374,6 +390,7 @@ async function refreshStickers() {
       });
       const entry = document.createElement('div');
       entry.className = 'playlist-entry';
+      searchable(entry, sticker);
       entry.append(batch.sticker.checkbox(sticker), playlistCheckbox('sticker', sticker), button, stickerEditor.itemButton(sticker));
       groupList.append(entry);
       }
@@ -405,6 +422,7 @@ async function load() {
   const expressionList = document.querySelector('#expression-list');
   for (const item of expressionItems) {
     const entry = document.createElement('div'); entry.className = 'playlist-entry';
+    searchable(entry, item);
     const image = document.createElement('img'); image.src = item.src; image.alt = ''; image.loading = 'lazy';
     const label = document.createElement('span'); label.textContent = item.label;
     entry.append(image, label, playlistCheckbox('expression', item));

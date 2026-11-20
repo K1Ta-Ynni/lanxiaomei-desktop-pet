@@ -35,8 +35,10 @@ try {
     return { pet, panel };
   }
   let { pet, panel } = await launch();
-  const quiet = join(temp, '轻声.wav'), loud = join(temp, '大声.wav'), song = join(temp, '清唱.wav');
-  await writeFile(quiet, wav(0.1)); await writeFile(loud, wav(0.4)); await writeFile(song, wav(0.2));
+  const quiet = join(temp, '轻声.wav'), loud = join(temp, '大声.wav'), song = process.argv[2] ? resolve(process.argv[2]) : join(temp, '清唱.wav');
+  await writeFile(quiet, wav(0.1)); await writeFile(loud, wav(0.4));
+  if (!process.argv[2]) await writeFile(song, wav(0.2));
+  const songBytes = await readFile(song);
   await desktop.evaluate(({ dialog }, paths) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: paths }); }, [quiet, loud]);
   await panel.locator('[data-page=voices]').click(); await panel.locator('#import-voices').click();
   await panel.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('已添加 2 条语音。音量分析完成 2 条。'));
@@ -56,6 +58,12 @@ try {
   assert.equal(catalog.filter(clip => clip.music && clip.normalized).length, 1);
   assert.equal(await panel.locator('[data-voice]').count(), 2);
   assert.equal(await panel.locator('[data-song]').count(), 1);
+  const importedSong = catalog.find(clip => clip.music);
+  assert.deepEqual(await readFile(fileURLToPath(importedSong.src)), songBytes, 'song import preserves encoded source bytes');
+  await panel.locator('[data-song]').click();
+  await pet.waitForFunction(async () => (await window.petApp.musicStatus()).state === 'playing');
+  await pet.waitForFunction(async () => (await window.petApp.musicStatus()).position > 0.1);
+  await pet.evaluate(() => window.petApp.executeInteraction({ type: 'music', action: 'stop' }));
   const cache = JSON.parse(await readFile(join(data, 'audio-loudness.json'), 'utf8'));
   assert.equal(cache.clips.length, 3);
   const windows = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map(w => w.webContents.getURL()));
