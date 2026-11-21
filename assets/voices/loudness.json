@@ -1441,6 +1441,36 @@
       "gainDb": 0.79,
       "estimatedLufs": -18.0,
       "peakLimited": false
+    },
+    {
+      "id": "song_a3bcfccc301c4b50b87ff254be640713",
+      "file": "music/song_a3bcfccc301c4b50b87ff254be640713.m4a",
+      "sha256": "e20efb1a040b20c1bc21b56dd7b0da79a38026534590c86a95cdad0fce298705",
+      "integratedLufs": -12.49,
+      "truePeakDb": -0.59,
+      "gainDb": -5.51,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_bilibili_43749212704",
+      "file": "music/song_bilibili_43749212704.m4a",
+      "sha256": "58435477e99e592e2ae68653c87ff732c204ab8c891d28f651fa20ca48e48e7c",
+      "integratedLufs": -18.23,
+      "truePeakDb": -6.39,
+      "gainDb": 0.23,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
+    },
+    {
+      "id": "song_bilibili_43749213239",
+      "file": "music/song_bilibili_43749213239.m4a",
+      "sha256": "31829ad732cd46da8cc4afd65c903fe254da7c645c605c349d1f0bc186377d20",
+      "integratedLufs": -17.48,
+      "truePeakDb": -4.32,
+      "gainDb": -0.52,
+      "estimatedLufs": -18.0,
+      "peakLimited": false
     }
   ]
 }

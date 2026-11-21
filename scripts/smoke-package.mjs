@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright';
+import { isSong } from '../src/music.js';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const edition = process.argv.find(arg => arg.startsWith('--edition='))?.slice('--edition='.length) || 'basic';
@@ -49,7 +50,14 @@ try {
   await pet.waitForFunction(() => document.querySelector('#pet img').getAttribute('src').endsWith('/portrait-laugh.png'));
   const pack = await pet.evaluate(() => window.petApp.voices());
   assert.equal(pack.warnings.length, 0);
-  const bundled = JSON.parse(await readFile(join(root, 'assets/voices/manifest.json'), 'utf8')).clips;
+  const packagedVoices = join(extracted, basename(build.output), 'resources/app/assets/voices');
+  const bundled = JSON.parse(await readFile(join(packagedVoices, 'manifest.json'), 'utf8')).clips;
+  if (build.songsBundled === false) {
+    assert.ok(bundled.every(clip => !isSong(clip)), 'portable catalog excludes every song');
+    const source = JSON.parse(await readFile(join(root, 'assets/voices/manifest.json'), 'utf8')).clips;
+    assert.equal(bundled.length, source.filter(clip => !isSong(clip)).length, 'all spoken recordings are retained');
+    assert.equal(pack.clips.filter(isSong).length, 0, 'new installations start with an empty music library');
+  }
   assert.equal(pack.clips.length, bundled.length, 'all bundled recordings migrate to user media on first launch');
   assert.ok(pack.clips.every(clip => clip.normalized), 'all release recordings have matching loudness measurements');
   assert.equal(pack.clips.filter(clip => clip.src.endsWith('.m4a')).length, bundled.filter(clip => clip.file.endsWith('.m4a')).length, 'M4A recordings are available in the packaged catalog');

@@ -7,6 +7,9 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { isSong } from '../src/music.js';
+import { loadVoices } from '../src/companion.js';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const temp = await mkdtemp(join(tmpdir(), 'lanxiaomei-update-lifecycle-'));
@@ -33,13 +36,20 @@ try {
   const [folder] = await readdir(extracted);
   install = join(extracted, folder);
   const appRoot = join(install, 'resources/app');
+  const previousCatalog = JSON.parse(await readFile(join(appRoot, 'assets/voices/manifest.json'), 'utf8'));
+  const previousSongs = previousCatalog.clips.filter(isSong);
+  const songDigests = new Map(await Promise.all(previousSongs.map(async song => [song.id,
+    createHash('sha256').update(await readFile(join(appRoot, 'assets/voices', song.file))).digest('hex')])));
+  if (previousSongs.length) await writeFile(join(data, 'preferences.json'), JSON.stringify({
+    muted: true, idleActions: false, musicPlaylist: { mode: 'repeat', ids: [previousSongs[0].id] },
+  }));
   // Keep the old package version/runtime so a newer target is offered. All
   // update code and the launcher come from the current working tree.
   await cp(join(root, 'src'), join(appRoot, 'src'), { recursive: true });
   const release = {
     tag_name: `v${target.version}`, html_url: `https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases/tag/v${target.version}`,
-    assets: [{ name: target.zip.split(/[\\/]/u).at(-1), state: 'uploaded', size: target.size, digest: `sha256:${target.sha256}`,
-      browser_download_url: `https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases/download/v${target.version}/${target.zip.split(/[\\/]/u).at(-1)}` }],
+    assets: [{ name: `lanxiaomei-desktop-pet-v${target.version}-win32-x64.zip`, state: 'uploaded', size: target.size, digest: `sha256:${target.sha256}`,
+      browser_download_url: `https://github.com/K1Ta-Ynni/lanxiaomei-desktop-pet/releases/download/v${target.version}/lanxiaomei-desktop-pet-v${target.version}-win32-x64.zip` }],
   };
   const env = { ...process.env, PET_STARTER_DATA_DIR: data };
   delete env.ELECTRON_RUN_AS_NODE; delete env.NODE_OPTIONS;
@@ -77,6 +87,22 @@ try {
   }, 'replacement automatically restarts a new Electron main process');
   assert.ok(JSON.parse(await readFile(join(job, 'helper-launch.json'), 'utf8')).pid > 0);
   assert.equal((await readFile(join(job, 'helper-error.log'), 'utf8')).trim(), '');
+  if (target.songsBundled === false) {
+    const bundled = JSON.parse(await readFile(join(appRoot, 'assets/voices/manifest.json'), 'utf8'));
+    assert.ok(bundled.clips.every(clip => !isSong(clip)), 'replacement application has no bundled songs');
+    const personal = join(data, 'media/voices');
+    const current = JSON.parse(await readFile(join(personal, 'manifest.json'), 'utf8'));
+    const catalog = await loadVoices(personal, { loudnessDirectory: join(appRoot, 'assets/voices') });
+    for (const song of previousSongs) {
+      const retained = current.clips.find(clip => clip.id === song.id);
+      assert.deepEqual(retained, song, 'existing song catalog entry survives update');
+      assert.equal(createHash('sha256').update(await readFile(join(personal, retained.file))).digest('hex'), songDigests.get(song.id));
+      assert.ok(catalog.clips.some(clip => clip.id === song.id && clip.normalized), 'existing song remains playable with measured gain');
+    }
+    if (previousSongs.length) assert.deepEqual(JSON.parse(await readFile(join(data, 'preferences.json'), 'utf8')).musicPlaylist,
+      { mode: 'repeat', ids: [previousSongs[0].id] }, 'existing song selection/mode retained');
+    console.log(`PASS: all ${previousSongs.length} previously installed songs, hashes, loudness metadata and playlist survive a package without songs.`);
+  }
   console.log(`PASS: real update lifecycle to v${target.version}: download + IPC + hidden helper + old app exit + replacement + automatic restart (Chinese/spaced paths).`);
 } finally {
   await desktop?.close().catch(() => {});

@@ -1196,6 +1196,32 @@
       "group": "歌曲",
       "music": true,
       "random": false
+    },
+    {
+      "id": "song_a3bcfccc301c4b50b87ff254be640713",
+      "label": "予以明日的花束",
+      "file": "music/song_a3bcfccc301c4b50b87ff254be640713.m4a",
+      "group": "歌曲",
+      "music": true,
+      "random": false
+    },
+    {
+      "id": "song_bilibili_43749212704",
+      "label": "天黑黑",
+      "file": "music/song_bilibili_43749212704.m4a",
+      "group": "歌曲",
+      "music": true,
+      "random": false,
+      "duration": 228.181333
+    },
+    {
+      "id": "song_bilibili_43749213239",
+      "label": "Say So",
+      "file": "music/song_bilibili_43749213239.m4a",
+      "group": "歌曲",
+      "music": true,
+      "random": false,
+      "duration": 235.648
     }
   ]
 }
