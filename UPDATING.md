@@ -37,11 +37,11 @@ lanxiaomei-desktop-pet-v2.1.0-companion-win32-x64.zip  # 仅供旧陪伴版更�
 
 v2.1.0 使用 `npm.cmd run package:windows -- --legacy-companion` 生成两个过渡 ZIP、各自 `.sha256` 和 `SHA256SUMS.txt`。这种兼容构建可运行 `npm.cmd run test:package`、`npm.cmd run test:package -- --edition=companion` 验证两个 ZIP 启动，再运行 `npm.cmd run test:upgrade-v2` 使用 Git 标签 v2.0.0 的原始更新器与安装脚本验证两条升级路径。
 
-### v2.1.1 及后续发布
+### v3.0.0 发行包
 
-歌曲分发规则：从 v2.1.2 之后的下一次构建起，Windows ZIP 只复制普通语音清单和对应文件，不再包含歌曲音频或未被语音清单引用的副本；按歌曲用途判定，目录名和用户分类不会使歌曲混入。源码及 Git 仓库继续保留歌曲。已经发布的 v2.1.2 ZIP 不变。
+Windows ZIP 中只提供桌宠运行所需的模型与立绘等资源。首次运行以空白语音、音乐和表情包库启动，可通过 Livehouse 导入自有素材。
 
-旧用户的歌曲在更新前迁移至用户目录，升级不会移除它们或重置歌单、分类和本地命名；新安装的音乐库为空，用户可自行导入。随包保留已有歌曲的轻量音量测量 JSON，使旧歌曲仍可使用增益补偿。`test:package` 检查无歌曲的新安装，`test:update-lifecycle` 验证从旧包升级后歌曲文件、清单、哈希、音量均衡和歌单均保留。
+更新前会将旧安装目录的媒体及其响度数据迁移至用户目录。已有文件、歌单、分类和本地命名会保留。`test:package` 检查新安装的素材库，`test:update-lifecycle` 验证旧包升级和重启。
 
 运行 `npm.cmd run package:windows` 仅生成一个主体版 ZIP、对应 `.sha256` 和 `SHA256SUMS.txt`；不再默认生成旧陪伴版兼容包。运行 `npm.cmd run test:package` 和 `npm.cmd run test:update-lifecycle` 检查发行包与完整更新重启流程。将 ZIP 和校验文件放入同一 GitHub Release；附件上传完成后客户端才能检测到更新。尚未升级的旧 v2 陪伴版可以先升级到 v2.1.0，或直接手动解压当前主体版使用。
 

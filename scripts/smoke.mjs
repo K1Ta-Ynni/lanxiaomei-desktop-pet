@@ -85,8 +85,8 @@ try {
   await pet.evaluate(() => document.querySelector('#pet img').getAnimations()[0].play());
   await cdp.detach();
   const initialPortrait = await pet.locator('#pet').boundingBox();
-  const initialTools = await pet.locator('.pet-tools').boundingBox();
-  assert.ok(Math.abs(initialTools.y - initialPortrait.y - initialPortrait.height - 10) <= 3, 'toolbar stays immediately below portrait when the viewport size changes');
+  const initialToolsTop = await pet.locator('.pet-tools').evaluate(toolbar => toolbar.offsetTop);
+  assert.ok(Math.abs(initialToolsTop - initialPortrait.y - initialPortrait.height - 10) <= 3, 'toolbar stays immediately below portrait when the viewport size changes');
   assert.equal(await pet.evaluate(() => typeof window.require), 'undefined');
   assert.equal(await pet.evaluate(() => typeof window.process), 'undefined');
   const settings = await waitPage('settings', () => pet.evaluate(() => window.petApp.openSettings()));
@@ -129,11 +129,14 @@ try {
   await settings.locator('[data-page=updates]').click();
   await settings.locator('#check-updates').waitFor();
   await pet.waitForFunction(() => !document.body.classList.contains('controls-visible'), { timeout: 5000 });
-  await pet.mouse.move(120, 190);
+  await pet.mouse.move(16, 156);
+  assert.equal(await pet.evaluate(() => document.body.classList.contains('controls-visible')), false, 'transparent portrait padding keeps the toolbar hidden');
+  await pet.locator('#pet').hover();
   await pet.waitForFunction(() => document.body.classList.contains('controls-visible'));
+  await pet.mouse.move(16, 156);
   await pet.waitForFunction(() => !document.body.classList.contains('controls-visible'), { timeout: 5000 });
   assert.equal(await pet.locator('.pet-tools').evaluate(element => getComputedStyle(element).pointerEvents), 'none', 'idle controls do not intercept clicks');
-  await pet.mouse.move(121, 191);
+  await pet.locator('#pet').hover();
   await pet.locator('#open-settings').click();
   await pet.mouse.move(1, 1);
   await pet.waitForFunction(() => !document.body.classList.contains('controls-visible'), { timeout: 5000 });
@@ -201,7 +204,8 @@ try {
   await pet.waitForFunction(() => getComputedStyle(document.documentElement).getPropertyValue('--pet-height') === '288px');
   const scaledPortrait = await pet.locator('#pet').boundingBox();
   const scaledTools = await pet.locator('.pet-tools').boundingBox();
-  assert.ok(Math.abs(scaledTools.y - scaledPortrait.y - scaledPortrait.height - 10) <= 3, 'toolbar tracks the portrait after resizing');
+  const scaledToolsTop = await pet.locator('.pet-tools').evaluate(toolbar => toolbar.offsetTop);
+  assert.ok(Math.abs(scaledToolsTop - scaledPortrait.y - scaledPortrait.height - 10) <= 3, 'toolbar tracks the portrait after resizing');
   assert.ok(scaledTools.y + scaledTools.height < await pet.evaluate(() => innerHeight), 'toolbar remains inside the pet window');
   const saved = JSON.parse(await readFile(join(dataDir, 'preferences.json'), 'utf8'));
   assert.equal(saved.scale, 0.8);
@@ -475,6 +479,8 @@ try {
   await pet.locator('#sticker').waitFor({ state: 'visible' });
   await settings.locator('#game-mode').uncheck();
   await pet.waitForFunction(() => !document.body.classList.contains('game-mode'));
+  await pet.locator('#pet').hover();
+  await pet.waitForFunction(() => document.body.classList.contains('controls-visible'));
   await pet.locator('.pet-tools').waitFor({ state: 'visible' });
   assert.equal(await pet.evaluate(() => document.body.classList.contains('controls-visible')), true, 'leaving game mode restores toolbar reveal');
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), true,
@@ -500,15 +506,21 @@ try {
   assert.equal((await pet.evaluate(() => window.petApp.desktopState())).petHidden, true);
   assert.equal(await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).isVisible()), false);
   await settings.locator('#pet-hidden').uncheck();
+  const dragArea = await desktop.evaluate(({ screen }) => screen.getPrimaryDisplay().workArea);
+  await pet.evaluate(({ x, y }) => window.petApp.executeInteraction({ type: 'moveTo', x: x + 120, y: y + 80 }), dragArea);
   const beforeDrag = await desktop.evaluate(({ BrowserWindow, screen }) => {
     globalThis.originalPetCursor = screen.getCursorScreenPoint;
-    globalThis.petTestCursor = { x: 500, y: 400 };
+    const area = screen.getPrimaryDisplay().workArea;
+    globalThis.petTestCursor = { x: area.x + 500, y: area.y + 400 };
     screen.getCursorScreenPoint = () => ({ ...globalThis.petTestCursor });
     return BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).getBounds();
   });
   await pet.evaluate(() => window.petApp.dragStart());
   await pet.evaluate(() => window.petApp.info()); // Flush ordered drag-start IPC.
-  await desktop.evaluate(() => { globalThis.petTestCursor = { x: 475, y: 385 }; });
+  await desktop.evaluate(() => {
+    globalThis.petTestCursor.x -= 25;
+    globalThis.petTestCursor.y -= 15;
+  });
   await pet.evaluate(() => window.petApp.dragMove());
   await pet.waitForTimeout(100);
   const afterDrag = await desktop.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/pet.html')).getBounds());

@@ -2,7 +2,7 @@
 // renderer IPC → helper → application exit → file replacement → automatic restart.
 import assert from 'node:assert/strict';
 import { _electron as electron } from 'playwright';
-import { cp, mkdir, mkdtemp, readFile, writeFile, readdir, rm } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, writeFile, readdir, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -88,8 +88,8 @@ try {
   assert.ok(JSON.parse(await readFile(join(job, 'helper-launch.json'), 'utf8')).pid > 0);
   assert.equal((await readFile(join(job, 'helper-error.log'), 'utf8')).trim(), '');
   if (target.songsBundled === false) {
-    const bundled = JSON.parse(await readFile(join(appRoot, 'assets/voices/manifest.json'), 'utf8'));
-    assert.ok(bundled.clips.every(clip => !isSong(clip)), 'replacement application has no bundled songs');
+    await assert.rejects(stat(join(appRoot, 'assets/voices')), { code: 'ENOENT' });
+    await assert.rejects(stat(join(appRoot, 'assets/stickers')), { code: 'ENOENT' });
     const personal = join(data, 'media/voices');
     const current = JSON.parse(await readFile(join(personal, 'manifest.json'), 'utf8'));
     const catalog = await loadVoices(personal, { loudnessDirectory: join(appRoot, 'assets/voices') });

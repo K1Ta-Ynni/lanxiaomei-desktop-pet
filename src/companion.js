@@ -4,6 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { audioDigest } from './audio-normalizer.js';
 import { DEFAULT_PLAYLIST, validatePlaylist } from './playlist.js';
 import { isSong, MAX_SONG_BYTES, MAX_VOICE_BYTES } from './music.js';
+import { DESKTOP_APPEARANCE_LABELS } from './appearance.js';
 const loudnessHashes = new Map();
 
 export const FEATURES = Object.freeze({ ai: true });
@@ -34,7 +35,7 @@ export const INTERACTIONS = Object.freeze([
   { id: 'resetPosition', label: '回到主屏幕' },
   { id: 'moveTo', label: '移动桌宠到屏幕位置', requiresPosition: true },
 ]);
-export const DEFAULT_PREFERENCES = Object.freeze({ scale: 1, volume: 0.65, muted: false, normalizeAudio: true, clickVoice: true, clickSticker: true, idleActions: true, lowResourceMode: false, animateIdle: true, autoBlink: true, talkAnimation: true, preloadExpressions: true, portraitMode: 'auto', expressionPlaylist: DEFAULT_PLAYLIST, voicePlaylist: DEFAULT_PLAYLIST, stickerPlaylist: DEFAULT_PLAYLIST, musicPlaylist: { mode: 'sequence', ids: null } });
+export const DEFAULT_PREFERENCES = Object.freeze({ scale: 1, volume: 0.65, muted: false, normalizeAudio: true, clickVoice: true, clickSticker: true, idleActions: true, lowResourceMode: false, animateIdle: true, autoBlink: true, talkAnimation: true, preloadExpressions: true, portraitMode: 'auto', expressionPlaylist: DEFAULT_PLAYLIST, voicePlaylist: DEFAULT_PLAYLIST, stickerPlaylist: DEFAULT_PLAYLIST, musicPlaylist: { mode: 'sequence', ids: null }, appearance: 'portrait', mouthMicrophone: false, mouthSensitivity: 50 });
 
 export function validatePreferences(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('互动设置格式不正确。');
@@ -47,13 +48,19 @@ export function validatePreferences(value) {
   const normalizeAudio = value.normalizeAudio ?? DEFAULT_PREFERENCES.normalizeAudio;
   if (typeof normalizeAudio !== 'boolean') throw new Error('音量均衡设置不正确。');
   const portraitMode = value.portraitMode ?? DEFAULT_PREFERENCES.portraitMode;
+  const appearance = value.appearance ?? DEFAULT_PREFERENCES.appearance;
+  const mouthMicrophone = value.mouthMicrophone ?? DEFAULT_PREFERENCES.mouthMicrophone;
+  const mouthSensitivity = value.mouthSensitivity ?? DEFAULT_PREFERENCES.mouthSensitivity;
+  if (typeof appearance !== 'string' || !Object.hasOwn(DESKTOP_APPEARANCE_LABELS, appearance) ||
+      typeof mouthMicrophone !== 'boolean' || !Number.isInteger(mouthSensitivity) ||
+      mouthSensitivity < 1 || mouthSensitivity > 100) throw new Error('桌宠外观或麦克风设置不正确。');
   const performance = {};
   for (const key of ['lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) {
     performance[key] = value[key] ?? DEFAULT_PREFERENCES[key];
     if (typeof performance[key] !== 'boolean') throw new Error('性能设置格式不正确。');
   }
   if (typeof clickSticker !== 'boolean' || typeof portraitMode !== 'string' || !/^[a-z][a-z0-9_-]{0,63}$/u.test(portraitMode)) throw new Error('表情互动设置不正确。');
-  return { scale: value.scale, volume: value.volume, muted: value.muted, normalizeAudio, clickVoice: value.clickVoice, clickSticker, idleActions: value.idleActions, ...performance, portraitMode,
+  return { scale: value.scale, volume: value.volume, muted: value.muted, normalizeAudio, clickVoice: value.clickVoice, clickSticker, idleActions: value.idleActions, ...performance, portraitMode, appearance, mouthMicrophone, mouthSensitivity,
     expressionPlaylist: validatePlaylist(value.expressionPlaylist ?? (portraitMode === 'auto' ? DEFAULT_PLAYLIST : { mode: 'repeat', ids: [portraitMode] })),
     voicePlaylist: validatePlaylist(value.voicePlaylist), stickerPlaylist: validatePlaylist(value.stickerPlaylist),
     musicPlaylist: validatePlaylist(value.musicPlaylist ?? DEFAULT_PREFERENCES.musicPlaylist) };
@@ -66,8 +73,13 @@ export async function loadVoices(directory, { loudnessDirectory = directory, lou
   catch { /* Custom packs without measurements retain their original volume. */ }
   let personal = { clips: [] };
   if (loudnessPath) try { personal = JSON.parse(await readFile(loudnessPath, 'utf8')); } catch { /* No local analysis yet. */ }
+  let migrated = { clips: [] };
+  if (directory !== loudnessDirectory) {
+    try { migrated = JSON.parse(await readFile(join(directory, 'loudness.json'), 'utf8')); }
+    catch { /* New installs have no legacy measurements. */ }
+  }
   const levels = new Map();
-  for (const row of [...(Array.isArray(personal.clips) ? personal.clips : []), ...(Array.isArray(loudness.clips) ? loudness.clips : [])]) {
+  for (const row of [personal.clips, loudness.clips, migrated.clips].flatMap(clips => Array.isArray(clips) ? clips : [])) {
     if (!levels.has(row.id)) levels.set(row.id, []);
     levels.get(row.id).push(row);
   }

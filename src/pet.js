@@ -1,8 +1,13 @@
 ﻿const pet = document.querySelector('#pet');
 import { playlistItems, defaultVoiceSelection, PlaylistPlayer } from './playlist.js';
 import { isSong } from './music.js';
-import { singerMode } from './pet-music.js';
+import { singerMode, updateMusicHover } from './pet-music.js';
 import { listSearch, searchable } from './list-search.js';
+import { petWindowSize } from './geometry.js';
+import { hitsPortrait } from './portrait-hit.js';
+import { appearanceExpressions } from './appearance.js';
+import { LayeredPortrait } from './layered-portrait.js';
+import { audioLevel, MouthMicrophone } from './voice-motion.js';
 
 const bubble = document.querySelector('#bubble');
 const greeting = document.querySelector('#greeting');
@@ -27,11 +32,92 @@ let audioContext, audioSource, voiceGain;
 let suspended = false;
 let clickThrough = false;
 const portrait = pet.querySelector('img');
+const canvas = pet.querySelector('canvas');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+let model, requestedAppearance, appearanceSequence = 0;
+let playbackAnalyser, playbackSamples, petLift = 0, artworkTop = 0, microphoneFailed = false;
+const microphone = new MouthMicrophone((status, error) => {
+  microphoneFailed = status === 'error';
+  if (error) console.warn(error);
+  model?.refresh();
+});
 let blinkSource, normalSource, blinkTimer, blinkEndTimer, expressionTimer, blinking = false;
 const decodedExpressions = new Map();
 const expressionPaths = new Map();
 const expressionLoads = new Map();
 let normalDimensions, expressionSequence = 0, expressionCacheEpoch = 0;
+function reportArtworkInsets() {
+  const artwork = model ? canvas : portrait;
+  const { clientWidth: width, clientHeight: height } = artwork;
+  if (!width || !height || (!model && !normalDimensions?.width)) return;
+  const imageHeight = model ? 0 : Math.min(height, width * normalDimensions.height / normalDimensions.width);
+  const offset = pet.offsetTop + artwork.offsetTop;
+  artworkTop = Math.round(offset + (model ? model.restingTop : (height - imageHeight) / 2));
+  const artworkBottom = Math.round(offset + (model ? model.restingBottom : (height + imageHeight) / 2));
+  document.body.style.setProperty('--artwork-top', artworkTop + 'px');
+  document.body.style.setProperty('--artwork-bottom', artworkBottom + 'px');
+  window.petApp.setArtworkInsets(artworkTop, Math.max(0, petWindowSize({ width, height }).height - artworkBottom));
+}
+new ResizeObserver(reportArtworkInsets).observe(portrait);
+new ResizeObserver(() => { reportArtworkInsets(); model?.refresh(); }).observe(canvas);
+window.petApp.onLift(lift => {
+  petLift = lift;
+  document.body.style.setProperty('--pet-lift', lift + 'px');
+  document.body.classList.toggle('pet-near-top', lift > 0);
+  document.body.classList.toggle('pet-near-bottom', lift < 0);
+  model?.refresh();
+});
+
+function syncMicrophone() {
+  if (model && preferences.mouthMicrophone && !suspended && !sleeping) {
+    if (!microphoneFailed) void microphone.start();
+  } else if (microphone.enabled || microphoneFailed) microphone.stop();
+}
+
+function sampleModel() {
+  const readingVoice = resourceOption('talkAnimation') && audio && !audio.paused && !audio.ended && activeClip?.kind !== 'music';
+  const usingMic = microphone.active;
+  const threshold = .12 * (.035 ** ((preferences.mouthSensitivity - 1) / 99));
+  const voiceLevel = usingMic ? microphone.level() * .021 / threshold :
+    readingVoice && playbackAnalyser ? audioLevel(playbackAnalyser, playbackSamples) : readingVoice && mouthOpen ? .1 : 0;
+  return {
+    hidden: suspended,
+    measuring: Boolean(usingMic || readingVoice) && !sleeping,
+    motion: resourceOption('animateIdle') && !sleeping && !reducedMotion.matches,
+    cancelJump: sleeping || reducedMotion.matches,
+    headRoom: Math.max(0, artworkTop - petLift - 4),
+    voiceLevel, blinking, music: Boolean(musicPlaying()),
+    playingMotion: !preferences.lowResourceMode && !sleeping && !reducedMotion.matches,
+    expression: sleeping ? 'sleepy' : portrait.dataset.expression ||
+      (musicPlaying() || restingExpression === 'talk' ? 'normal' : restingExpression),
+  };
+}
+
+async function syncAppearance(appearance) {
+  requestedAppearance = appearance;
+  const sequence = ++appearanceSequence;
+  if (appearance === 'layered') {
+    try {
+      const images = await LayeredPortrait.load();
+      if (sequence !== appearanceSequence) return;
+      model = new LayeredPortrait(canvas, images, sampleModel);
+    } catch {
+      if (sequence !== appearanceSequence) return;
+      notice('分层立绘加载失败，已显示蓝小妹立绘。');
+    }
+  } else {
+    model?.stop();
+    model = undefined;
+  }
+  canvas.hidden = !model;
+  portrait.hidden = Boolean(model);
+  document.body.classList.toggle('layered-layout', Boolean(model));
+  reportArtworkInsets();
+  syncMicrophone();
+  scheduleBlink();
+  scheduleRestingExpression();
+  void syncMusicAnimation();
+}
 function resourceOption(key) { return !preferences?.lowResourceMode && preferences?.[key]; }
 let controlsTimer;
 let restingExpression = 'normal', restingTimer, speakingTimer, mouthOpen = false;
@@ -41,11 +127,13 @@ let musicFrameSource, musicFrameTimer, musicFrameLoad, musicAnimationSequence = 
 let clicks = 0, lastClickAt = 0;
 
 function closePicker() {
+  if (stickerPicker.hidden) return;
   stickerPicker.hidden = true;
   pickerButton.setAttribute('aria-expanded', 'false');
   revealControls();
 }
 function closeMusicPicker() {
+  if (musicPicker.hidden) return;
   musicPicker.hidden = true;
   musicPickerButton.setAttribute('aria-expanded', 'false');
   revealControls();
@@ -135,9 +223,10 @@ async function openPicker() {
 
 function scheduleRestingExpression() {
   clearTimeout(restingTimer);
-  const catalog = ['normal', ...Object.keys(info?.expressions || {})].map(id => ({ id }));
+  if (!info) return;
+  const catalog = appearanceExpressions(info, model ? 'layered' : 'portrait');
   const playlist = preferences?.expressionPlaylist || { mode: 'random', ids: null };
-  const defaultSelected = item => (info?.idleExpressions || ['normal']).includes(item.id);
+  const defaultSelected = item => item.defaultSelected;
   const choices = playlistItems(catalog, playlist, defaultSelected);
   const key = JSON.stringify([playlist.mode, choices.map(item => item.id)]);
   if (key !== restingPlaylistKey) {
@@ -169,7 +258,7 @@ function musicPlaying() {
 async function syncMusicAnimation() {
   const sequence = ++musicAnimationSequence;
   clearTimeout(musicFrameTimer);
-  if (!musicPlaying()) {
+  if (model || !musicPlaying()) {
     musicFrameSource = undefined;
     musicFrameLoad = undefined;
     renderExpression();
@@ -214,6 +303,7 @@ async function syncMusicAnimation() {
 }
 
 function renderExpression() {
+  if (model) { model.refresh(); return; }
   if (!normalSource) return;
   if (!sleeping && !suspended && !portrait.dataset.expression && musicFrameSource) {
     if (portrait.getAttribute('src') !== musicFrameSource) portrait.src = musicFrameSource;
@@ -252,7 +342,7 @@ async function preloadExpressionImages() {
 function showExpression(name, duration = 1100) {
   if (suspended || sleeping) return;
   const sequence = ++expressionSequence;
-  if (name !== 'normal' && !decodedExpressions.has(name)) {
+  if (!model && name !== 'normal' && !decodedExpressions.has(name)) {
     void decodeExpression(name).then(image => { if (image && sequence === expressionSequence) showExpression(name, duration); });
     return;
   }
@@ -274,7 +364,7 @@ function scheduleBlink() {
   renderExpression();
   if (!resourceOption('autoBlink') || sleeping || suspended || musicPlaying() || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   blinkTimer = setTimeout(() => {
-    void decodeExpression('blink').then(image => {
+    void (model ? Promise.resolve(true) : decodeExpression('blink')).then(image => {
       if (!image || !resourceOption('autoBlink') || sleeping || suspended || musicPlaying()) return;
       blinking = true;
       renderExpression();
@@ -282,28 +372,28 @@ function scheduleBlink() {
     });
   }, 3000 + Math.random() * 4000);
 }
-window.matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', () => { scheduleBlink(); void syncMusicAnimation(); });
+reducedMotion.addEventListener('change', () => { scheduleBlink(); void syncMusicAnimation(); });
 
 function revealControls() {
   if (clickThrough) return;
   document.body.classList.add('controls-visible');
   clearTimeout(controlsTimer);
   controlsTimer = setTimeout(() => {
-    if (document.querySelector('.pet-tools:hover, .pet-tools :focus-visible, .pet-tools :active')) {
+    if ((lastPointer && pointerTarget(lastPointer) === pet) ||
+        document.querySelector('.pet-tools:hover, .pet-tools :focus-visible, .pet-tools :active')) {
       revealControls();
       return;
     }
     if (stickerPicker.hidden && musicPicker.hidden) document.body.classList.remove('controls-visible');
   }, 2600);
 }
-window.addEventListener('mousemove', revealControls, { passive: true });
-window.addEventListener('pointerdown', revealControls, { passive: true });
 window.addEventListener('keydown', revealControls);
 document.querySelector('.pet-tools').addEventListener('focusin', revealControls);
 document.querySelector('.pet-tools').addEventListener('focusout', revealControls);
 
 function applyDesktopState(state) {
   suspended = state.petHidden;
+  syncMicrophone();
   clickThrough = state.gameMode || state.petHidden;
   document.body.classList.toggle('game-mode', state.gameMode);
   if (clickThrough) {
@@ -317,6 +407,7 @@ function applyDesktopState(state) {
     clearTimeout(expressionTimer);
     portrait.dataset.expression = '';
     stopVoice();
+    model?.refresh();
     clearTimeout(greetingTimer);
     clearTimeout(actionTimer);
     pet.classList.remove('action-greet', 'action-jump', 'action-sway');
@@ -335,9 +426,7 @@ function applyDesktopState(state) {
     dragging = false;
     window.petApp.dragEnd();
   }
-  if (!suspended) revealControls();
-  ignoring = clickThrough;
-  window.petApp.ignoreMouse(clickThrough);
+  syncPointer(true);
   scheduleBlink();
   scheduleRestingExpression();
   void syncMusicAnimation();
@@ -357,10 +446,13 @@ function applyPreferences(value) {
   const wasPreloading = preferences ? resourceOption('preloadExpressions') : undefined;
   const wasBlinking = resourceOption('autoBlink');
   const wasTalking = resourceOption('talkAnimation');
+  if (preferences?.mouthMicrophone !== value.preferences.mouthMicrophone) microphoneFailed = false;
   preferences = value.preferences;
   document.body.classList.toggle('low-resource', !resourceOption('animateIdle'));
   document.documentElement.style.setProperty('--pet-width', value.displaySize.width + 'px');
   document.documentElement.style.setProperty('--pet-height', value.displaySize.height + 'px');
+  if (requestedAppearance !== preferences.appearance) void syncAppearance(preferences.appearance);
+  else syncMicrophone();
   document.querySelector('#music-widget').dataset.density = preferences.scale < 0.85 ? 'compact' : preferences.scale < 1.2 ? 'standard' : 'full';
   if (audio) { audio.volume = preferences.volume; audio.muted = preferences.muted; }
   if (voiceGain) voiceGain.gain.value = 10 ** ((preferences.normalizeAudio ? activeClip?.gainDb || 0 : 0) / 20);
@@ -381,6 +473,7 @@ function applyPreferences(value) {
 }
 function animate(id) {
   if (sleeping || suspended) return;
+  if (model) { model.move(id === 'sway' ? 'tilt' : 'jump'); return; }
   clearTimeout(actionTimer);
   pet.classList.remove('action-greet', 'action-jump', 'action-sway');
   void pet.offsetWidth;
@@ -392,6 +485,8 @@ function stopVoice(report = true) {
   mouthOpen = false;
   if (!audio) { void syncMusicAnimation(); return; }
   audioSource?.disconnect();
+  playbackAnalyser?.disconnect();
+  playbackAnalyser = playbackSamples = undefined;
   voiceGain?.disconnect();
   audioSource = voiceGain = null;
   audio.onended = null;
@@ -431,6 +526,12 @@ async function playVoice(clip) {
     voiceGain = audioContext.createGain();
     voiceGain.gain.value = 10 ** ((preferences.normalizeAudio ? clip.gainDb || 0 : 0) / 20);
     audioSource.connect(voiceGain).connect(audioContext.destination);
+    if (clip.kind !== 'music') {
+      playbackAnalyser = audioContext.createAnalyser();
+      playbackAnalyser.fftSize = 1024;
+      playbackSamples = new Float32Array(playbackAnalyser.fftSize);
+      audioSource.connect(playbackAnalyser);
+    }
     await audioContext.resume();
     if (audio !== current) return;
   } catch { /* A system without Web Audio can still play the original recording. */ }
@@ -455,7 +556,7 @@ async function playVoice(clip) {
     speakingTick();
     report('playing');
     if (clip.kind !== 'music') notice(clip.text || '♪ ' + clip.label, Math.max(1400, (clip.duration || 3) * 1000 + 500));
-    if (clip.kind !== 'music') animate('greet');
+    if (clip.kind !== 'music' && !model) animate('greet');
   } catch { failed(); }
 }
 async function sayHello() {
@@ -502,7 +603,7 @@ async function sayHello() {
   }
 }
 pet.addEventListener('pointerdown', event => {
-  if (clickThrough || event.button !== 0) return;
+  if (clickThrough || event.button !== 0 || !pointerTarget(event)) return;
   pointerId = event.pointerId;
   downAt = { x: event.screenX, y: event.screenY };
   dragging = false;
@@ -518,19 +619,25 @@ pet.addEventListener('pointerup', event => {
   if (event.pointerId !== pointerId) return;
   window.petApp.dragEnd();
   if (!dragging) void window.petApp.executeInteraction({ type: 'greet' }).catch(error => notice(error.message));
-  else showExpression(Math.random() < 0.5 ? 'surprised' : 'confused', 1300);
+  else {
+    model?.move('drag');
+    showExpression(Math.random() < 0.5 ? 'surprised' : 'confused', 1300);
+  }
   downAt = undefined;
   pointerId = undefined;
+  syncPointer();
 });
 pet.addEventListener('pointercancel', () => {
   window.petApp.dragEnd();
   downAt = undefined;
   pointerId = undefined;
+  syncPointer();
 });
 pet.addEventListener('lostpointercapture', () => {
   window.petApp.dragEnd();
   downAt = undefined;
   pointerId = undefined;
+  syncPointer();
 });
 pet.addEventListener('keydown', event => {
   if (event.key === 'Enter' || event.key === ' ') {
@@ -538,22 +645,45 @@ pet.addEventListener('keydown', event => {
     void window.petApp.executeInteraction({ type: 'greet' }).catch(error => notice(error.message));
   }
 });
-let ignoring = false, ignoreTimer;
-window.addEventListener('mousemove', event => {
-  const target = document.elementFromPoint(event.clientX, event.clientY);
-  const next = clickThrough || (!downAt && !target?.closest('button, .pet-tools, .bubble, .sticker-picker, .music-widget'));
-  clearTimeout(ignoreTimer);
-  if (next === ignoring) return;
-  if (!next) {
-    ignoring = false;
-    window.petApp.ignoreMouse(false);
-  } else {
-    // Keep the gaps between controls interactive and avoid toggling the native
-    // window to click-through during their tiny hover/appearance transitions.
-    ignoreTimer = setTimeout(() => { ignoring = true; window.petApp.ignoreMouse(true); }, 40);
+let lastPointer, ignoring;
+function pointerTarget({ clientX, clientY }) {
+  const target = document.elementFromPoint(clientX, clientY);
+  if (!target) return null;
+  if (target.closest('#pet')) {
+    const inside = model ? model.hitsArtwork(clientX, clientY) : hitsPortrait(portrait, clientX, clientY);
+    return inside ? pet : null;
   }
+  return target.closest('button, .bubble, .sticker-picker, .music-widget');
+}
+
+function syncPointer(force = false) {
+  const target = !clickThrough && lastPointer ? pointerTarget(lastPointer) : null;
+  const next = clickThrough || (!downAt && !target);
+  if (target) revealControls();
+  updateMusicHover(target);
+  if (force || next !== ignoring) {
+    ignoring = next;
+    window.petApp.ignoreMouse(next);
+  }
+}
+window.addEventListener('mousemove', event => {
+  lastPointer = { clientX: event.clientX, clientY: event.clientY };
+  syncPointer();
+}, { passive: true });
+window.addEventListener('mouseout', event => {
+  if (event.relatedTarget) return;
+  lastPointer = undefined;
+  syncPointer();
 });
-pet.addEventListener('contextmenu', event => { event.preventDefault(); window.petApp.contextMenu(); });
+window.addEventListener('blur', () => {
+  lastPointer = undefined;
+  syncPointer();
+});
+portrait.addEventListener('load', () => { if (lastPointer) syncPointer(); });
+pet.addEventListener('contextmenu', event => {
+  event.preventDefault();
+  if (pointerTarget(event)) window.petApp.contextMenu();
+});
 document.querySelector('#open-chat').addEventListener('click', () => window.petApp.openChat());
 document.querySelector('#open-settings').addEventListener('click', () => window.petApp.openSettings());
 document.querySelector('#quit').addEventListener('click', () => window.petApp.quit());
@@ -645,6 +775,7 @@ window.petApp.onState(state => {
   clearTimeout(expressionTimer);
   portrait.dataset.expression = '';
   sleeping = state.sleeping;
+  syncMicrophone();
   ++helloSequence;
   if (sleeping) closePicker();
   scheduleBlink();
@@ -661,18 +792,18 @@ async function load() {
   normalSource = '../' + info.image;
   pet.querySelector('img').alt = info.name;
   pet.setAttribute('aria-label', '拖动' + info.name + '，点击和她打招呼');
-  applyPreferences(info);
   sleeping = info.sleeping;
+  applyPreferences(info);
   pet.classList.toggle('sleeping', sleeping);
   document.querySelector('#sleep').hidden = !sleeping;
   applyDesktopState(await window.petApp.desktopState());
   applySpeechState(await window.petApp.speechStatus());
-  revealControls();
   if (info.expressions) {
     const normal = new Image();
     normal.src = normalSource;
     try { await normal.decode(); } catch { /* Original image load reports through the element. */ }
     normalDimensions = { width: normal.naturalWidth, height: normal.naturalHeight };
+    reportArtworkInsets();
     for (const [name, path] of Object.entries(info.expressions)) expressionPaths.set(name, path);
     if (resourceOption('preloadExpressions')) await preloadExpressionImages();
     scheduleBlink();

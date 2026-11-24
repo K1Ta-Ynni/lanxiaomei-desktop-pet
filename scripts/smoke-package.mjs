@@ -1,11 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, mkdir, stat } from 'node:fs/promises';
 import { join, resolve, basename } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright';
-import { isSong } from '../src/music.js';
 
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const edition = process.argv.find(arg => arg.startsWith('--edition='))?.slice('--edition='.length) || 'basic';
@@ -36,31 +35,26 @@ try {
   await pet.evaluate(() => window.petApp.openSettings());
   const settings = await opened;
   await settings.locator('#import-stickers').waitFor({ state: 'attached' });
-  const stickers = (await pet.evaluate(() => window.petApp.stickers())).stickers;
-  assert.equal(stickers.length, 55, 'numbered stickers migrate to packaged user media');
-  assert.equal(stickers.filter(sticker => sticker.animated).length, 4);
-  assert.ok(stickers.every(sticker => sticker.src.includes('/media/stickers/')));
+  const assetRoot = join(extracted, basename(build.output), 'resources/app/assets');
+  for (const path of ['voices', 'stickers', 'media-library-defaults.json', 'snowman']) {
+    await assert.rejects(stat(join(assetRoot, path)), { code: 'ENOENT' });
+  }
+  assert.deepEqual(await pet.evaluate(() => window.petApp.stickers()), { stickers: [], warnings: [], groups: [] });
   await pet.evaluate(() => document.querySelector('#open-stickers').click());
-  await pet.locator('#quick-stickers button').first().waitFor();
-  await pet.locator('#quick-random').click();
-  await pet.locator('#sticker').waitFor({ state: 'visible' });
-  await pet.waitForFunction(() => document.querySelector('#sticker').naturalWidth > 0);
-  await pet.evaluate(() => window.petApp.hideSticker());
+  await pet.waitForFunction(() => document.querySelector('#picker-status').textContent.includes('还没有表情包'));
+  await pet.evaluate(() => document.querySelector('#close-picker').click());
   await settings.locator('[data-expression=laugh]').click();
   await pet.waitForFunction(() => document.querySelector('#pet img').getAttribute('src').endsWith('/portrait-laugh.png'));
-  const pack = await pet.evaluate(() => window.petApp.voices());
-  assert.equal(pack.warnings.length, 0);
-  const packagedVoices = join(extracted, basename(build.output), 'resources/app/assets/voices');
-  const bundled = JSON.parse(await readFile(join(packagedVoices, 'manifest.json'), 'utf8')).clips;
-  if (build.songsBundled === false) {
-    assert.ok(bundled.every(clip => !isSong(clip)), 'portable catalog excludes every song');
-    const source = JSON.parse(await readFile(join(root, 'assets/voices/manifest.json'), 'utf8')).clips;
-    assert.equal(bundled.length, source.filter(clip => !isSong(clip)).length, 'all spoken recordings are retained');
-    assert.equal(pack.clips.filter(isSong).length, 0, 'new installations start with an empty music library');
-  }
-  assert.equal(pack.clips.length, bundled.length, 'all bundled recordings migrate to user media on first launch');
-  assert.ok(pack.clips.every(clip => clip.normalized), 'all release recordings have matching loudness measurements');
-  assert.equal(pack.clips.filter(clip => clip.src.endsWith('.m4a')).length, bundled.filter(clip => clip.file.endsWith('.m4a')).length, 'M4A recordings are available in the packaged catalog');
+  assert.deepEqual(await pet.evaluate(() => window.petApp.voices()), { clips: [], warnings: [], groups: [], musicGroups: [] });
+  await pet.evaluate(() => window.petApp.savePreferences({ appearance: 'layered' }));
+  await pet.waitForFunction(() => {
+    const canvas = document.querySelector('.layered-portrait');
+    if (canvas.hidden) return false;
+    const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    return pixels.some((value, index) => index % 4 === 3 && value !== 0);
+  });
+  await pet.evaluate(() => window.petApp.savePreferences({ appearance: 'portrait' }));
+  await pet.locator('#pet img').waitFor({ state: 'visible' });
   await pet.evaluate(() => document.querySelector('#open-music').click());
   await pet.locator('#quick-music-search').waitFor();
   await pet.locator('#quick-music-search').fill('不存在的测试歌名');
@@ -71,24 +65,14 @@ try {
   await settings.locator('#music-search').fill('不存在的测试歌名');
   assert.equal(await settings.locator('[data-song]:visible').count(), 0);
   await settings.locator('#music-search').fill('');
-  assert.equal(pack.clips.filter(clip => clip.group === '唱歌').length, bundled.filter(clip => clip.group === '唱歌').length);
-  assert.ok(pack.clips.filter(clip => clip.group === '唱歌').every(clip => clip.random === false));
-  assert.ok(pack.clips.every(clip => clip.src.includes('/media/voices/')));
   await settings.locator('[data-page=voices]').click();
-  await settings.locator('[data-voice]').first().waitFor();
   await settings.locator('#voice-playlist-mode').waitFor();
   await settings.locator('#sticker-playlist-mode').waitFor({ state: 'attached' });
-  assert.equal(await settings.locator('[data-voice-playlist]').count(), pack.clips.filter(clip => !clip.music && !['唱歌', '歌曲'].includes(clip.group)).length, 'voice library excludes songs');
+  assert.equal(await settings.locator('[data-voice-playlist]').count(), 0);
   assert.equal(await settings.title(), '蓝神のLivehouse');
   assert.equal(await settings.locator('#update-edition').count(), 0);
   assert.ok((await readFile(join(extracted, basename(build.output), 'PLAY_GUIDE.md'), 'utf8')).includes('常驻表情列表'));
-  assert.equal(await settings.locator('[data-sticker-playlist]').count(), 55, 'packaged sticker playlist includes every image');
-  assert.equal(await settings.locator('[data-voice-playlist]:checked').count(), pack.clips.filter(clip => !clip.music && !['唱歌', '歌曲'].includes(clip.group) && clip.random !== false).length, 'songs stay outside the default playlist');
-  const prefs = await pet.evaluate(() => window.petApp.preferences());
-  await pet.evaluate(prefs => window.petApp.savePreferences({ ...prefs, muted: true }), prefs);
-  const shortest = pack.clips.filter(clip => !clip.music && !['唱歌', '歌曲'].includes(clip.group)).sort((a, b) => a.duration - b.duration)[0];
-  await pet.evaluate(id => window.petApp.playVoice(id), shortest.id);
-  await settings.waitForFunction(() => document.querySelector('#voice-result').textContent.includes('播放完成'), null, { timeout: 15000 });
+  assert.equal(await settings.locator('[data-sticker-playlist]').count(), 0);
   await desktop.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/settings.html'));
     window.close();

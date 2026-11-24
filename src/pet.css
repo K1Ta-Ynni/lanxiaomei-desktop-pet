@@ -7,6 +7,8 @@ body { user-select: none; }
 .pet { top: 148px; }
 .pet:active { cursor: grabbing; }
 .pet img { display: block; width: var(--pet-width, 244px); height: var(--pet-height, 274px); object-fit: contain; filter: drop-shadow(0 9px 7px rgb(20 43 53 / 12%)); transform-origin: 50% 90%; animation: bob 3.8s ease-in-out infinite; pointer-events: none; }
+.pet img[hidden], .pet .layered-portrait[hidden] { display: none; }
+.pet .layered-portrait { display: block; width: var(--pet-width, 244px); height: var(--pet-height, 274px); pointer-events: none; }
 /* Keep idle timing stable: hover can toggle during transparent-window hit testing.
    Changing duration mid-cycle remaps its progress and makes the portrait jump. */
 .pet.sleeping img { animation: snooze 5s ease-in-out infinite; filter: saturate(.65) drop-shadow(0 9px 7px rgb(20 43 53 / 12%)); }
@@ -61,6 +63,82 @@ svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width:
 .sticker-picker { position: absolute; z-index: 4; left: 12px; right: 12px; bottom: 45px; padding: 10px; border: 1px solid #cbdcd6; border-radius: 13px; color: #193b46; background: #fffdf8; box-shadow: 0 5px 20px rgb(20 43 53 / 16%); font: 11px/1.4 "Microsoft YaHei UI", sans-serif; }
 .sticker-picker[hidden] { display: none; }
 .music-picker { z-index: 5; }
+.pet-overlays { display: contents; }
+.layered-layout .sleep { top: var(--artwork-top); }
+:is(.pet-near-top, .pet-near-bottom) :is(.pet, .sleep, .pet-tools) { translate: 0 calc(-1 * var(--pet-lift)); }
+:is(.pet-near-top, .pet-near-bottom, .layered-layout) .pet-overlays {
+  position: absolute;
+  z-index: 5;
+  inset-inline: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.layered-layout:not(.pet-near-top, .pet-near-bottom) .pet-overlays {
+  bottom: calc(100% - var(--artwork-top) + 20px);
+  max-height: calc(var(--artwork-top) - 28px);
+  justify-content: flex-end;
+}
+.pet-near-top .pet-overlays {
+  --overlays-top: calc(var(--artwork-bottom) + 56px - var(--pet-lift));
+  top: var(--overlays-top);
+  max-height: calc(100% - var(--overlays-top) - 8px);
+}
+.pet-near-bottom .pet-tools {
+  top: calc(var(--artwork-top) - var(--pet-lift) - 54px);
+  translate: none;
+}
+.pet-near-bottom .pet-overlays {
+  --overlays-bottom: calc(var(--artwork-top) - var(--pet-lift) - 60px);
+  bottom: calc(100% - var(--overlays-bottom));
+  max-height: calc(var(--overlays-bottom) - 8px);
+  justify-content: flex-end;
+}
+:is(.pet-near-top, .pet-near-bottom) .pet-overlays > :is(.music-widget, .bubble, .sticker-picker, #speech-indicator) {
+  position: relative;
+  inset: auto;
+}
+.layered-layout:not(.pet-near-top, .pet-near-bottom) .pet-overlays > :is(.music-widget, .bubble, #speech-indicator) {
+  position: relative;
+  inset: auto;
+}
+:is(.pet-near-top, .pet-near-bottom, .layered-layout) .music-widget { width: 100%; flex: none; }
+:is(.pet-near-top, .pet-near-bottom) .music-widget { padding-block: 5px; gap: 4px; }
+:is(.pet-near-top, .pet-near-bottom) .music-widget-controls button { height: 24px; }
+:is(.pet-near-top, .pet-near-bottom) #music-widget-mode { height: 20px; }
+:is(.pet-near-top, .pet-near-bottom, .layered-layout) .bubble { transform: none; max-width: 100%; pointer-events: auto; }
+.layered-layout.singer-mode:not(.pet-near-top, .pet-near-bottom) .bubble .sticker-display:not([hidden]) {
+  max-height: clamp(26px, calc(var(--artwork-top) - 150px), 82px);
+}
+.pet-near-bottom.singer-mode .bubble .sticker-display:not([hidden]) {
+  max-height: clamp(26px, calc(var(--overlays-bottom) - 132px), 82px);
+}
+:is(.pet-near-top, .pet-near-bottom) .bubble #greeting { min-width: 0; overflow-wrap: anywhere; }
+:is(.pet-near-top, .pet-near-bottom) .sticker-picker:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+:is(.pet-near-top, .pet-near-bottom) .sticker-picker :is(.quick-stickers, .quick-music) { min-height: 0; }
+:is(.pet-near-top, .pet-near-bottom) .pet-overlays:has(.sticker-picker:not([hidden])) > :is(.bubble, .music-widget) { display: none; }
+:is(.pet-near-top, .pet-near-bottom) .pet-overlays > :is(.bubble, .sticker-picker, #speech-indicator) { pointer-events: auto; }
+.pet-near-top #speech-indicator, .pet-near-bottom #speech-indicator { align-self: flex-start; }
+.layered-layout #speech-indicator { align-self: flex-start; pointer-events: auto; }
+.layered-layout:not(.pet-near-top, .pet-near-bottom) .sticker-picker:not([hidden]) {
+  position: fixed;
+  inset: 10px 12px auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100% - 20px);
+  z-index: 8;
+  pointer-events: auto;
+}
+.layered-layout .sticker-picker :is(.quick-stickers, .quick-music) { min-height: 0; }
+.layered-layout .pet-overlays:has(.sticker-picker:not([hidden])) > :is(.bubble, .music-widget) { display: none; }
+.pet-near-top .pet { --jump-rise: clamp(0px, calc(var(--artwork-top) - var(--pet-lift) - 4px), 16px); }
 .picker-heading { display: flex; align-items: center; gap: 6px; }
 .picker-heading strong { margin-right: auto; }
 .picker-heading button { padding: 3px 6px; border: 1px solid #dce6e1; border-radius: 5px; color: #31565a; background: #f1faf6; font: inherit; cursor: pointer; }
@@ -90,7 +168,7 @@ svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width:
 @keyframes snooze { 0%, 100% { transform: translateY(7px) rotate(10deg) scale(.96); } 50% { transform: translateY(7px) rotate(10deg) scale(.98); } }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(4px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes greet { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-5deg) translateY(3px); } 65% { transform: rotate(3deg); } }
-@keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: scale(1.02, .97); } 45% { transform: translateY(-16px) rotate(-2deg); } 75% { transform: translateY(1px) scale(1.02, .98); } }
+@keyframes jump { 0%, 100% { transform: translateY(0); } 20% { transform: scale(1.02, .97); } 45% { transform: translateY(calc(-1 * var(--jump-rise, 16px))) rotate(-2deg); } 75% { transform: translateY(1px) scale(1.02, .98); } }
 @keyframes sway { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 70% { transform: rotate(6deg); } }
 .game-mode .pet-stage { pointer-events: none; }
 .game-mode .pet-tools { visibility: hidden; opacity: 0; pointer-events: none; transition: none; }

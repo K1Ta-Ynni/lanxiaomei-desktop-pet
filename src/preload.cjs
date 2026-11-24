@@ -67,6 +67,8 @@ contextBridge.exposeInMainWorld('petApp', {
   dragMove: () => ipcRenderer.send('pet:drag-move'),
   dragStart: () => ipcRenderer.send('pet:drag-start'),
   dragEnd: () => ipcRenderer.send('pet:drag-end'),
+  setArtworkInsets: (top, bottom) => ipcRenderer.send('pet:artwork-insets', top, bottom),
+  onLift: callback => ipcRenderer.on('pet:lift', (_event, lift) => callback(lift)),
   ignoreMouse: (ignore) => ipcRenderer.send('pet:mouse-ignore', ignore),
   openChat: () => ipcRenderer.send('pet:open-chat'),
   openSettings: () => ipcRenderer.send('pet:open-settings'),

@@ -2,10 +2,11 @@ import { app, BrowserWindow, ipcMain, screen, safeStorage, Menu, Tray, shell, di
 import { readFile, writeFile, mkdir, rename, copyFile, stat } from 'node:fs/promises';
 import { join, resolve, relative, isAbsolute, basename, extname, dirname } from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { chatCompletionsUrl, DEFAULT_SETTINGS, validateSettings, isDeepSeekEndpoint, migrateModelSettings } from './shared.js';
 import { FEATURES, ACTIONS, INTERACTIONS, DEFAULT_PREFERENCES, validatePreferences, loadVoices, loadStickers } from './companion.js';
+import { DESKTOP_APPEARANCE_LABELS } from './appearance.js';
 import { UpdateManager, RELEASES_URL, prepareInstallJob } from './updates.js';
 import { prepareMedia } from './media.js';
 import { MediaLibrary } from './media-library.js';
@@ -19,6 +20,7 @@ import { chatSystemPrompt, rememberExplicit, validateMemories } from './chat-mem
 import { SpeechInput } from './speech.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
+const petPage = pathToFileURL(join(root, 'src', 'pet.html')).href;
 // Keep the legacy update identifier; all v2.1 builds share one product and update channel.
 // edition.json exists only so v2's installer can validate its transition package.
 const buildEdition = 'basic';
@@ -249,6 +251,10 @@ function makeMenu() {
       label: `${Math.round(scale * 100)}%`, type: 'checkbox', checked: Math.abs(preferences.scale - scale) < 0.001,
       click: () => { void savePreferences({ scale }).catch(error => petWindow?.webContents.send('pet:notice', error.message)); },
     })) },
+    { label: '切换模型', submenu: Object.entries(DESKTOP_APPEARANCE_LABELS).map(([appearance, label]) => ({
+      label, type: 'radio', checked: preferences.appearance === appearance,
+      click: () => { void savePreferences({ appearance }).catch(error => petWindow?.webContents.send('pet:notice', error.message)); },
+    })) },
     { label: '动作', enabled: !petHidden, submenu: ACTIONS.map(action => ({ label: action.label, click: () => {
       try { performAction(action.id); } catch { petWindow?.webContents.send('pet:notice', '蓝小妹在休息，先叫醒她吧。'); }
     } })) },
@@ -280,7 +286,15 @@ function guardWindow(window) {
   // Every window loads local files only; model output is always rendered as plain text.
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.on('will-navigate', (event) => event.preventDefault());
-  window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  const allowMouthMicrophone = (contents, permission) => permission === 'media' && contents === petWindow?.webContents &&
+    contents?.getURL() === petPage && preferences.appearance === 'layered' &&
+    preferences.mouthMicrophone && !petHidden && !sleeping;
+  const session = window.webContents.session;
+  session.setPermissionCheckHandler((contents, permission, _origin, details) =>
+    details.mediaType === 'audio' && details.isMainFrame && allowMouthMicrophone(contents, permission));
+  session.setPermissionRequestHandler((contents, permission, callback, details) =>
+    callback(details.isMainFrame && details.mediaTypes?.length === 1 && details.mediaTypes[0] === 'audio' &&
+      allowMouthMicrophone(contents, permission)));
 }
 
 function secureWindowOptions(width, height, extra = {}) {
@@ -317,7 +331,8 @@ function createPetWindow() {
     hasShadow: false,
     backgroundColor: '#00000000',
   }));
-  petPlacement = new PetPlacement(petWindow, screen, { ...bottomRightPosition(area, windowSize), ...windowSize });
+  petPlacement = new PetPlacement(petWindow, screen, { ...bottomRightPosition(area, windowSize), ...windowSize },
+    lift => petWindow?.webContents.send('pet:lift', lift));
   petPlacement.place(petPlacement.bounds);
   petWindow.setAlwaysOnTop(true, process.platform === 'win32' ? 'screen-saver' : 'floating');
   guardWindow(petWindow);
@@ -956,10 +971,16 @@ ipcMain.on('pet:drag-start', event => {
   petPlacement?.startDrag();
 });
 ipcMain.on('pet:drag-end', event => { if (event.sender === petWindow?.webContents) petPlacement?.endDrag(); });
+ipcMain.on('pet:artwork-insets', (event, top, bottom) => {
+  if (event.sender !== petWindow?.webContents || ![top, bottom].every(inset => Number.isFinite(inset) && inset >= 0 && inset <= 900)) return;
+  petPlacement?.setArtworkInsets(top, bottom);
+});
 ipcMain.on('pet:open-chat', event => { if ([petWindow?.webContents, settingsWindow?.webContents].includes(event.sender) && !petHidden) openChat(); });
 ipcMain.on('pet:open-settings', event => { if ([petWindow?.webContents, chatWindow?.webContents].includes(event.sender) && !petHidden) openSettings(); });
 ipcMain.on('pet:quit', () => app.quit());
-ipcMain.on('pet:context-menu', () => { if (!gameMode && !petHidden) makeMenu().popup({ window: petWindow }); });
+ipcMain.on('pet:context-menu', event => {
+  if (event.sender === petWindow?.webContents && !gameMode && !petHidden) makeMenu().popup({ window: petWindow });
+});
 ipcMain.on('chat:cancel', () => chatController?.abort());
 ipcMain.on('pet:mouse-ignore', (event, ignore) => {
   if (event.sender === petWindow?.webContents && petWindow && !petWindow.isDestroyed()) petWindow.setIgnoreMouseEvents(gameMode || petHidden || Boolean(ignore), { forward: true });

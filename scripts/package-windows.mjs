@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { rcedit } from 'rcedit';
-import { packageVoices } from './package-media.mjs';
 
 if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('This packaging script requires Windows x64.');
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -42,9 +41,9 @@ const app = join(output, 'resources', 'app');
 await mkdir(app, { recursive: true });
 for (const entry of ['src', 'assets', 'character', 'package.json', 'README.md', 'PLAY_GUIDE.md', 'ASSETS.md', 'LICENSE', 'INTERACTIONS.md', 'UPDATING.md', 'CHANGELOG.md']) {
   await cp(join(root, entry), join(app, entry), { recursive: true,
-    filter: path => path !== join(root, 'assets', 'voices') });
+    filter: path => !['voices', 'stickers', 'media-library-defaults.json']
+      .some(name => path === join(root, 'assets', name)) });
 }
-const media = await packageVoices(join(root, 'assets', 'voices'), join(app, 'assets', 'voices'));
 await cp(join(root, 'ASSETS.md'), join(output, 'ASSETS.md'));
 await cp(join(root, 'PLAY_GUIDE.md'), join(output, 'PLAY_GUIDE.md'));
 await cp(join(root, 'LICENSE'), join(output, 'LICENSE-APP.txt'));
@@ -58,8 +57,9 @@ const instructions = [
   '侧栏提供互动小屋、语音、表情包、音乐、偏好、AI 与模型及版本更新。',
   '常驻表情、语音、表情包和歌曲可管理列表；素材支持本地改名、分类与批量编辑。',
   '音乐支持播放/暂停、停止、进度、切歌、播放模式与实时音量，播放时有专用音乐动画。',
-  '发行包不再附带歌曲文件；已有歌曲与播放列表会保留，新歌曲可从音乐页自行添加。',
-  '启动会随机播放入场语音；静音仍保留字幕和动作。',
+  '右键桌宠或系统托盘图标可切换蓝小妹分层模型和原版立绘。',
+  '首次运行的素材库为空，可在 Livehouse 导入自己的语音、歌曲和表情包，并创建分类。',
+  '已导入的素材、分类和播放列表会在更新时保留。',
   'Ctrl+Alt+G 切换游戏模式（仅鼠标穿透，其他功能保留）。',
   'Ctrl+Alt+H 独立隐藏/显示。重启恢复普通显示。',
   '窗口关闭后收进托盘；退出请使用托盘菜单。',
@@ -90,7 +90,7 @@ try {
     const checksum = `${sha256}  ${filename}.zip\n`;
     checksums.push(checksum);
     await writeFile(`${archive}.sha256`, checksum, 'utf8');
-    const metadata = { output, zip: archive, size: (await stat(archive)).size, sha256, edition, unified: true, version: pkg.version, songsBundled: false, ...media };
+    const metadata = { output, zip: archive, size: (await stat(archive)).size, sha256, edition, unified: true, version: pkg.version, songsBundled: false, voiceClips: 0 };
     await writeFile(join(dist, `latest-build-${edition}.json`), JSON.stringify(metadata, null, 2) + '\n');
     if (edition === 'basic') await writeFile(join(dist, 'latest-build.json'), JSON.stringify(metadata, null, 2) + '\n');
     console.log(JSON.stringify(metadata, null, 2));

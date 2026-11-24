@@ -73,6 +73,34 @@ test('resize, moveTo, display changes and reset never reuse an inflated native s
   assert.ok(Math.abs(window.getBounds().width - 210) <= 1);
 });
 
+test('the portrait can reach both screen edges while its window stays on-screen', () => {
+  const { placement, screen, window } = fixture(1);
+  placement.setArtworkInsets(270, 72);
+  placement.startDrag();
+  screen.cursor = { x: 600, y: 10 };
+  placement.moveDrag();
+  assert.equal(placement.bounds.y, -190);
+  assert.equal(placement.lift, 190);
+  assert.deepEqual(window.getBounds(), { x: 500, y: 0, width: 270, height: 572 });
+  screen.cursor = { x: -500, y: -200 };
+  placement.moveDrag();
+  placement.endDrag();
+  assert.equal(placement.bounds.y, -400);
+  assert.equal(placement.lift, 200);
+  assert.equal(window.getBounds().y, -200);
+  assert.equal(window.getBounds().height, 838);
+  placement.moveTo(-600, -900);
+  assert.equal(placement.bounds.y + 270, -188);
+  placement.moveTo(600, 1500);
+  assert.equal(placement.bounds.y + 572 - 72, 1028);
+  assert.equal(placement.lift, -60);
+  assert.deepEqual(window.getBounds(), { x: 600, y: 468, width: 270, height: 572 });
+  placement.moveTo(-600, -900);
+  placement.setArtworkInsets(0, 0);
+  assert.equal(placement.lift, 0);
+  assert.deepEqual(window.getBounds(), { x: -600, y: -200, width: 270, height: 572 });
+});
+
 test('asynchronous DPI resize restores the owned size with bounded retries', async () => {
   const { placement, window } = fixture();
   window.setBounds({ x: 500, y: 300, width: 800, height: 900 });

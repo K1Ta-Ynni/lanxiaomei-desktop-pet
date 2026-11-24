@@ -8,9 +8,11 @@ import { DEFAULT_PREFERENCES, INTERACTIONS, validatePreferences, loadVoices, loa
 
 test('rejects invalid local preferences rather than persisting unusable values', () => {
   assert.deepEqual(validatePreferences(DEFAULT_PREFERENCES), DEFAULT_PREFERENCES);
-  const { clickSticker, portraitMode, lowResourceMode, animateIdle, autoBlink, talkAnimation, preloadExpressions, ...legacy } = DEFAULT_PREFERENCES;
+  const { clickSticker, portraitMode, lowResourceMode, animateIdle, autoBlink, talkAnimation, preloadExpressions,
+    appearance, mouthMicrophone, mouthSensitivity, ...legacy } = DEFAULT_PREFERENCES;
   assert.deepEqual(validatePreferences(legacy), DEFAULT_PREFERENCES, 'older preferences gain new defaults without losing volume or scale');
-  for (const changed of [{ scale: NaN }, { scale: 2 }, { volume: -1 }, { muted: 'yes' }]) {
+  for (const changed of [{ scale: NaN }, { scale: 2 }, { volume: -1 }, { muted: 'yes' },
+    { appearance: 'standard' }, { mouthMicrophone: 'yes' }, { mouthSensitivity: 101 }]) {
     assert.throws(() => validatePreferences({ ...DEFAULT_PREFERENCES, ...changed }));
   }
 });

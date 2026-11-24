@@ -25,7 +25,7 @@
 <header class="topbar"><div class="identity"><img src="../assets/portraits/avatar.png" alt="" /><div><strong id="page-title">互动小屋</strong><span id="page-description">今天也来打个招呼吧</span></div></div><span class="local-badge">● 本地陪伴</span></header>
 <main class="settings-form">
 <div class="settings-panel" data-panel="home">
-<div class="welcome-strip"><div><span class="eyebrow">A LITTLE COMPANY</span><h1>蓝小妹在这里</h1><p>打个招呼，听听声音。把喜欢的片段收进自己的列表。</p></div><img src="../assets/portraits/portrait-smile.png" alt="" /></div>
+<div class="welcome-strip"><div><span class="eyebrow">A LITTLE COMPANY</span><h1>蓝小妹在这里</h1><p>打个招呼，听听声音。把喜欢的片段收进自己的列表。</p></div><div class="welcome-preview"><img src="../assets/portraits/portrait-smile.png" alt="" /></div></div>
 <section class="card">
 <h2>游戏模式与显示</h2>
 <label class="check"><input id="game-mode" type="checkbox" /> 游戏模式 · Ctrl+Alt+G</label>
@@ -118,6 +118,11 @@
 <div class="settings-panel" data-panel="preferences" hidden>
 <form id="preferences-form" class="card">
 <h2>互动设置</h2>
+<div class="field"><label for="appearance">桌宠外观</label><select id="appearance"></select></div>
+<div id="lip-sync-settings" hidden>
+<label class="check"><input id="mouthMicrophone" type="checkbox" /> 用麦克风驱动嘴型</label>
+<div class="field"><label for="mouthSensitivity">麦克风灵敏度 <output id="mouth-sensitivity-value">50%</output></label><input id="mouthSensitivity" type="range" min="1" max="100" step="1" /></div>
+</div>
 <div class="field"><label for="scale">大小 <output id="scale-value">100%</output></label><input id="scale" type="range" min="0.6" max="1.6" step="0.05" /></div>
 <div class="field"><label for="volume">音量 <output id="volume-value">65%</output></label><input id="volume" type="range" min="0" max="1" step="0.05" /></div>
 <label class="check"><input id="muted" type="checkbox" /> 静音（保留语音字幕与动作）</label>

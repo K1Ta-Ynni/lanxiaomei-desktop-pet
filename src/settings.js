@@ -5,6 +5,8 @@ import './settings-nav.js';
 import { renderMusic, renderMusicVolume } from './settings-music.js';
 import { libraryEditor, batchEditor } from './settings-library.js';
 import { listSearch, searchable } from './list-search.js';
+import { appearanceExpressions, DESKTOP_APPEARANCE_LABELS } from './appearance.js';
+import { LayeredPortrait } from './layered-portrait.js';
 
 const voiceResult = document.querySelector('#voice-result');
 const actionResult = document.querySelector('#action-result');
@@ -92,7 +94,7 @@ function renderPlaylist(kind) {
     play.type = 'button';
     play.className = 'selected-play';
     play.dataset[kind + 'Selected'] = item.id;
-    if (kind === 'sticker' || kind === 'expression') {
+    if ((kind === 'sticker' || kind === 'expression') && item.src) {
       const image = document.createElement('img');
       image.src = item.src;
       image.alt = item.label;
@@ -400,9 +402,100 @@ async function refreshStickers() {
     show(stickerResult, catalog.warnings.join(' '), catalog.warnings.length > 0);
   } catch (error) { show(stickerResult, error.message, true); }
 }
+const appearance = document.querySelector('#appearance');
+const mouthMicrophone = document.querySelector('#mouthMicrophone');
+const mouthSensitivity = document.querySelector('#mouthSensitivity');
+const welcomePortrait = document.querySelector('.welcome-preview img');
+const expressionList = document.querySelector('#expression-list');
+const expressionButtons = document.querySelector('#expressions');
+let characterInfo, activeAppearance, layeredPreviews;
+for (const [id, label] of Object.entries(DESKTOP_APPEARANCE_LABELS)) appearance.add(new Option(label, id));
+
+function refreshLipSyncControls() {
+  document.querySelector('#lip-sync-settings').hidden = appearance.value !== 'layered';
+  document.querySelector('#mouth-sensitivity-value').value = mouthSensitivity.value + '%';
+}
+appearance.addEventListener('change', refreshLipSyncControls);
+mouthSensitivity.addEventListener('input', refreshLipSyncControls);
+
+function syncAppearanceControls(preferences) {
+  appearance.value = preferences.appearance;
+  mouthMicrophone.checked = preferences.mouthMicrophone;
+  mouthSensitivity.value = preferences.mouthSensitivity;
+  refreshLipSyncControls();
+}
+
+function renderAppearance(model) {
+  if (!characterInfo || activeAppearance === model) return;
+  activeAppearance = model;
+  welcomePortrait.dataset.appearance = model;
+  welcomePortrait.hidden = model === 'layered';
+  welcomePortrait.src = '../' + (characterInfo.expressions.smile || characterInfo.image);
+  const items = appearanceExpressions(characterInfo, model).map(item => ({
+    ...item, src: model === 'portrait' ? '../' + item.path : '',
+  }));
+  expressionItems = items;
+  expressionList.replaceChildren();
+  expressionButtons.replaceChildren();
+  const thumbnails = new Map();
+  for (const item of items) {
+    const entry = document.createElement('div');
+    entry.className = 'playlist-entry';
+    searchable(entry, item);
+    const image = document.createElement('img');
+    image.alt = '';
+    image.loading = 'lazy';
+    if (item.src) image.src = item.src;
+    else image.hidden = true;
+    thumbnails.set(item.id, image);
+    const label = document.createElement('span');
+    label.textContent = item.label;
+    entry.append(image, label, playlistCheckbox('expression', item));
+    expressionList.append(entry);
+    if (item.id === 'normal') continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary-button';
+    button.dataset.expression = item.id;
+    button.textContent = item.label;
+    button.addEventListener('click', async () => {
+      try { await window.petApp.executeInteraction({ type: 'showExpression', id: item.id }); show(actionResult, item.label + ' ✓'); }
+      catch (error) { show(actionResult, error.message, true); }
+    });
+    expressionButtons.append(button);
+  }
+  renderPlaylist('expression');
+  if (model === 'portrait') return;
+  layeredPreviews ??= LayeredPortrait.load().then(images => {
+    const canvas = document.createElement('canvas');
+    return new Map(items.map(({ id }) => {
+      LayeredPortrait.drawPreview(canvas, images, id);
+      return [id, canvas.toDataURL()];
+    }));
+  }).catch(error => {
+    layeredPreviews = undefined;
+    throw error;
+  });
+  void layeredPreviews.then(previews => {
+    if (expressionItems !== items) return;
+    welcomePortrait.src = previews.get('normal');
+    welcomePortrait.hidden = false;
+    for (const item of items) {
+      const image = thumbnails.get(item.id);
+      item.src = image.src = previews.get(item.id);
+      image.hidden = false;
+    }
+    renderPlaylist('expression');
+  }).catch(() => {
+    if (expressionItems === items) show(actionResult, '蓝小妹分层模型预览加载失败。', true);
+  });
+}
+
 async function load() {
   applyDesktopState(await window.petApp.desktopState());
   const info = await window.petApp.info();
+  characterInfo = info;
+  syncAppearanceControls(info.preferences);
   document.querySelector('.identity img').src = '../' + info.avatar;
   document.querySelector('#art-credit').textContent = info.artCredit || '';
   const modelSettings = await window.petApp.readSettings();
@@ -415,20 +508,8 @@ async function load() {
   volume.value = info.preferences.volume;
   renderMusicVolume(info.preferences);
   renderMusic(await window.petApp.musicStatus());
-  expressionItems = [{ id: 'normal', label: '原始表情', src: '../' + info.image },
-    ...Object.entries(info.expressions || {}).map(([id, path]) => ({ id, label: info.expressionLabels?.[id] || id, src: '../' + path }))]
-    .map(item => ({ ...item, defaultSelected: info.idleExpressions.includes(item.id) }));
   playlistState.expression = info.preferences.expressionPlaylist;
-  const expressionList = document.querySelector('#expression-list');
-  for (const item of expressionItems) {
-    const entry = document.createElement('div'); entry.className = 'playlist-entry';
-    searchable(entry, item);
-    const image = document.createElement('img'); image.src = item.src; image.alt = ''; image.loading = 'lazy';
-    const label = document.createElement('span'); label.textContent = item.label;
-    entry.append(image, label, playlistCheckbox('expression', item));
-    expressionList.append(entry);
-  }
-  renderPlaylist('expression');
+  renderAppearance(info.preferences.appearance);
   for (const key of ['muted', 'normalizeAudio', 'clickVoice', 'clickSticker', 'idleActions', 'lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) document.getElementById(key).checked = info.preferences[key];
   renderPerformanceControls();
   labels();
@@ -447,20 +528,6 @@ async function load() {
     });
     actions.append(button);
   }
-  for (const id of Object.keys(info.expressions || {})) {
-    const label = info.expressionLabels?.[id] || id;
-    if (!info.expressions?.[id]) continue;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'secondary-button';
-    button.dataset.expression = id;
-    button.textContent = label;
-    button.addEventListener('click', async () => {
-      try { await window.petApp.executeInteraction({ type: 'showExpression', id }); show(actionResult, label + ' ✓'); }
-      catch (error) { show(actionResult, error.message, true); }
-    });
-    document.querySelector('#expressions').append(button);
-  }
   await refreshVoices();
   await refreshStickers();
 }
@@ -469,7 +536,8 @@ volume.addEventListener('input', () => { labels(); window.petApp.previewVolume(N
 volume.addEventListener('change', () => { void window.petApp.savePreferences({ volume: Number(volume.value) }).catch(error => show(result, error.message, true)); });
 document.querySelector('#preferences-form').addEventListener('submit', async event => {
   event.preventDefault();
-  const input = { scale: Number(scale.value), volume: Number(volume.value) };
+  const input = { scale: Number(scale.value), volume: Number(volume.value),
+    appearance: appearance.value, mouthMicrophone: mouthMicrophone.checked, mouthSensitivity: Number(mouthSensitivity.value) };
   for (const key of ['muted', 'normalizeAudio', 'clickVoice', 'clickSticker', 'idleActions', 'lowResourceMode', 'animateIdle', 'autoBlink', 'talkAnimation', 'preloadExpressions']) input[key] = document.getElementById(key).checked;
   try { await window.petApp.savePreferences(input); scaleEditing = false; show(result, '已保存并立即生效。'); }
   catch (error) { show(result, error.message, true); }
@@ -543,6 +611,11 @@ window.petApp.onVoiceStatus(value => {
   show(voiceResult, labels[value.state] + value.label, value.state === 'error');
 });
 window.petApp.onPreferences(({ preferences }) => {
+  if (characterInfo && preferences.appearance !== activeAppearance) {
+    syncAppearanceControls(preferences);
+    playlistState.expression = preferences.expressionPlaylist;
+    renderAppearance(preferences.appearance);
+  }
   if (!scaleEditing) scale.value = preferences.scale;
   labels();
   renderMusicVolume(preferences);

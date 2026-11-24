@@ -6,14 +6,16 @@ const modeButton = document.querySelector('#music-widget-mode');
 const volume = document.querySelector('#music-widget-volume');
 const volumeValue = document.querySelector('#music-widget-volume-value');
 let state = { state: 'idle', mode: 'sequence' };
-let hideTimer, pointer, changingMode = false, seeking = false, savingVolume = false;
+let hideTimer, hoveredTarget, changingMode = false, seeking = false, savingVolume = false;
 export function singerMode() { return ['loading', 'playing', 'paused'].includes(state.state); }
 
-function hover(event) {
-  if (event) pointer = { x: event.clientX, y: event.clientY };
-  const target = pointer && document.elementFromPoint(pointer.x, pointer.y);
+export function updateMusicHover(target) {
+  hoveredTarget = target;
   const active = singerMode();
-  const over = active && target?.closest('#pet, .music-widget') && document.querySelector('#sticker-picker').hidden;
+  const targetSelector = document.body.matches('.pet-near-top, .pet-near-bottom, .layered-layout')
+    ? '#pet, .music-widget, .bubble, .pet-tools' : '#pet, .music-widget';
+  const over = active && target?.closest(targetSelector) &&
+    document.querySelector('#sticker-picker').hidden && document.querySelector('#music-picker').hidden;
   if (over) {
     clearTimeout(hideTimer);
     hideTimer = undefined;
@@ -42,7 +44,7 @@ function render(value) {
   modeButton.textContent = names[value.mode] || names.sequence;
   modeButton.title = '当前：' + modeButton.textContent + '播放；点击切换模式';
   if (!active) document.body.classList.remove('music-hover');
-  else hover();
+  else updateMusicHover(hoveredTarget);
 }
 async function control(action, extra = {}) {
   try { await window.petApp.executeInteraction({ type: 'music', action, ...extra }); }
@@ -88,11 +90,6 @@ modeButton.addEventListener('click', async () => {
   } catch (error) { title.title = error.message; }
   finally { changingMode = false; modeButton.disabled = false; }
 });
-window.addEventListener('mousemove', hover, { passive: true });
-window.addEventListener('mouseout', event => {
-  if (!event.relatedTarget) { pointer = undefined; hover(); }
-});
-window.addEventListener('blur', () => { pointer = undefined; hover(); });
 window.petApp.onMusicState(render);
 window.petApp.onPreferences(({ preferences }) => renderVolume(preferences));
 window.petApp.onVolume(value => renderVolume({ volume: value }));
